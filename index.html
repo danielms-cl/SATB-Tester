@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SATB Tester</title>
+<style>
+  :root {
+    --bg: #1a1a1f;
+    --panel: #26262e;
+    --panel-2: #2f2f3a;
+    --accent: #7c5cff;
+    --accent-2: #5cffb1;
+    --text: #e8e8f0;
+    --muted: #8a8a99;
+    --danger: #ff5c7c;
+    --warn: #ffb85c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    min-height: 100vh;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 1400px;
+    margin: 0 auto 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #33333f;
+  }
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  h1 span { color: var(--accent); }
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .tempo-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel);
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid #33333f;
+  }
+  .tempo-box label { font-size: 13px; color: var(--muted); }
+  .tempo-box input {
+    width: 60px;
+    background: transparent;
+    border: none;
+    color: var(--accent-2);
+    font-weight: 700;
+    font-size: 16px;
+    text-align: center;
+    outline: none;
+  }
+  button {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid #3a3a48;
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  button:hover { background: var(--panel-2); border-color: var(--accent); }
+  button:active { transform: scale(0.97); }
+  .btn-play {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    padding: 10px 22px;
+  }
+  .btn-play:hover { background: #8f72ff; border-color: #8f72ff; }
+  .btn-play.playing { background: var(--danger); border-color: var(--danger); }
+
+  .chords-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-start;
+    padding-bottom: 8px;
+  }
+
+  .chord-block {
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 12px;
+    border: 1px solid #33333f;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s;
+    position: relative;
+    width: 200px;
+    flex-shrink: 0;
+  }
+  .chord-block.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .chord-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .chord-index {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: left;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    flex: 1;
+  }
+
+  .play-chord-btn {
+    background: var(--panel-2);
+    border: 1px solid #3a3a48;
+    color: var(--accent-2);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .play-chord-btn:hover {
+    background: var(--accent-2);
+    color: var(--bg);
+    border-color: var(--accent-2);
+    transform: scale(1.1);
+  }
+  .play-chord-btn.playing {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+  }
+
+  .voices {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .voice {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+  .voice-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    width: 14px;
+    text-align: center;
+  }
+  .voice-label.s { color: #ff7c9c; }
+  .voice-label.a { color: #ffb85c; }
+  .voice-label.t { color: #5cc9ff; }
+  .voice-label.b { color: #7cff9c; }
+
+  .note-selector {
+    display: flex;
+    gap: 3px;
+    flex: 1;
+  }
+  select {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid #3a3a48;
+    padding: 5px 2px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  select:hover, select:focus { border-color: var(--accent); }
+  select.note-name { flex: 1; min-width: 44px; text-align: center; }
+  select.accidental { width: 34px; text-align: center; color: var(--accent-2); padding: 5px 0; }
+  select.out-of-range {
+    border-color: var(--danger) !important;
+    color: var(--danger);
+  }
+
+  .duration-selector {
+    display: flex;
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 2px;
+    border: 1px solid #3a3a48;
+    justify-content: center;
+  }
+  .duration-btn {
+    background: transparent;
+    border: none;
+    padding: 5px 9px;
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    transition: all 0.15s;
+  }
+  .duration-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .duration-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .remove-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--panel-2);
+    border: 1px solid #3a3a48;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .chord-block:hover .remove-btn { opacity: 1; }
+  .remove-btn:hover { color: white; background: var(--danger); border-color: var(--danger); }
+
+  .add-btn {
+    background: transparent;
+    border: 2px dashed #3a3a48;
+    color: var(--muted);
+    padding: 14px 20px;
+    font-size: 15px;
+    border-radius: 12px;
+    width: 200px;
+    min-height: 200px;
+    flex-shrink: 0;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(124,92,255,0.05);
+  }
+
+  .hint {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 30px;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  @media (max-width: 900px) {
+    .chord-block, .add-btn {
+      width: calc((100% - 24px) / 3);
+    }
+  }
+  @media (max-width: 640px) {
+    body { padding: 12px; }
+    .chord-block, .add-btn {
+      width: calc((100% - 12px) / 2);
+    }
+    .chord-block { padding: 10px; }
+    .add-btn { min-height: 180px; font-size: 13px; }
+  }
+  @media (max-width: 380px) {
+    .chord-block, .add-btn {
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SATB <span>Tester</span></h1>
+  <div class="controls">
+    <div class="tempo-box">
+      <label>BPM</label>
+      <input type="number" id="tempo" value="60" min="20" max="240">
+    </div>
+    <button class="btn-play" id="playBtn">▶ Reproducir</button>
+    <button id="stopBtn">■ Detener</button>
+  </div>
+</header>
+
+<div class="chords-container" id="chordsContainer">
+  <button class="add-btn" id="addChordBtn">+ Añadir acorde</button>
+</div>
+
+<p class="hint">
+  Selecciona la nota, la alteración y la duración de cada voz. Pulsa ▶ en cada acorde para escucharlo individualmente.
+</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script>
+/* ============================================================
+   MODELO MUSICAL
+   ============================================================ */
+
+const NOTES = [
+  { name: 'C', semitone: 0 },
+  { name: 'D', semitone: 2 },
+  { name: 'E', semitone: 4 },
+  { name: 'F', semitone: 5 },
+  { name: 'G', semitone: 7 },
+  { name: 'A', semitone: 9 },
+  { name: 'B', semitone: 11 },
+];
+
+const ACCIDENTALS = [
+  { label: '♮', value: 0 },
+  { label: '#', value: 1 },
+  { label: 'b', value: -1 },
+];
+
+// Rangos SATB estándar con extensiones comunes (MIDI):
+// Soprano: C4(60) – A5(81)
+// Alto:    F3(53) – E5(76)
+// Tenor:   C3(48) – B4(71)
+// Bajo:    E2(40) – D4(62)
+const VOICE_RANGES = {
+  S: { min: 60, max: 81, default: 72 },
+  A: { min: 53, max: 76, default: 67 },
+  T: { min: 48, max: 71, default: 60 },
+  B: { min: 40, max: 62, default: 48 },
+};
+
+const VOICES = ['S', 'A', 'T', 'B'];
+
+const DURATIONS = {
+  'negra':   { beats: 1, label: '♩',  toneValue: '4n' },
+  'blanca':  { beats: 2, label: '𝅗𝅥', toneValue: '2n' },
+  'redonda': { beats: 4, label: '𝅝',  toneValue: '1n' },
+};
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+
+let chords = [];
+let playing = false;
+let stopRequested = false;
+
+/* ============================================================
+   UTILIDADES MUSICALES
+   ============================================================ */
+
+function midiToNoteName(midi) {
+  const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const octave = Math.floor(midi / 12) - 1;
+  return names[midi % 12] + octave;
+}
+
+function getNoteMidi(noteName, accidentalValue, octave) {
+  const n = NOTES.find(x => x.name === noteName);
+  if (!n) return null;
+  return (octave + 1) * 12 + n.semitone + accidentalValue;
+}
+
+function isInRange(voice, midi) {
+  const r = VOICE_RANGES[voice];
+  return midi >= r.min && midi <= r.max;
+}
+
+// Obtiene las notas (en formato Tone.js) de un bloque de acorde en el DOM
+function getBlockNotes(block) {
+  return VOICES.map(v => {
+    const voiceEl = block.querySelector(`.voice[data-voice="${v}"]`);
+    const noteSel = voiceEl.querySelector('.note-name');
+    const accSel = voiceEl.querySelector('.accidental');
+    const [note, octaveStr] = noteSel.value.split('|');
+    const oct = parseInt(octaveStr);
+    const acc = parseInt(accSel.value);
+    const midi = getNoteMidi(note, acc, oct);
+    return midiToNoteName(midi);
+  });
+}
+
+// Obtiene la duración de un bloque
+function getBlockDuration(block) {
+  const durationBtn = block.querySelector('.duration-btn.active');
+  return durationBtn ? durationBtn.dataset.duration : 'negra';
+}
+
+/* ============================================================
+   CREACIÓN DE UI
+   ============================================================ */
+
+function createVoiceSelector(voice) {
+  const range = VOICE_RANGES[voice];
+  const wrapper = document.createElement('div');
+  wrapper.className = 'voice';
+  wrapper.dataset.voice = voice;
+
+  const label = document.createElement('div');
+  label.className = 'voice-label ' + voice.toLowerCase();
+  label.textContent = voice;
+  wrapper.appendChild(label);
+
+  const selector = document.createElement('div');
+  selector.className = 'note-selector';
+
+  const noteSel = document.createElement('select');
+  noteSel.className = 'note-name';
+
+  // Orden descendente dentro de la octava: B, A, G, F, E, D, C
+  const naturalPitches = ['B', 'A', 'G', 'F', 'E', 'D', 'C'];
+  const octavesSet = new Set();
+  for (let midi = range.min; midi <= range.max; midi++) {
+    octavesSet.add(Math.floor(midi / 12) - 1);
+  }
+  const sortedOctaves = [...octavesSet].sort((a, b) => b - a);
+
+  sortedOctaves.forEach(oct => {
+    naturalPitches.forEach(n => {
+      const midi = getNoteMidi(n, 0, oct);
+      if (midi >= range.min && midi <= range.max) {
+        const opt = document.createElement('option');
+        opt.value = n + '|' + oct;
+        opt.textContent = n + oct;
+        noteSel.appendChild(opt);
+      }
+    });
+  });
+
+  const defaultOpt = [...noteSel.options].find(o => {
+    const [n, oct] = o.value.split('|');
+    const midi = getNoteMidi(n, 0, parseInt(oct));
+    return Math.abs(midi - range.default) <= 1;
+  }) || noteSel.options[0];
+  noteSel.value = defaultOpt.value;
+
+  const accSel = document.createElement('select');
+  accSel.className = 'accidental';
+  ACCIDENTALS.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.value;
+    opt.textContent = a.label;
+    accSel.appendChild(opt);
+  });
+  accSel.value = '0';
+
+  const validate = () => {
+    const [n, octStr] = noteSel.value.split('|');
+    const oct = parseInt(octStr);
+    const acc = parseInt(accSel.value);
+    const midi = getNoteMidi(n, acc, oct);
+    if (!isInRange(voice, midi)) {
+      noteSel.classList.add('out-of-range');
+      accSel.classList.add('out-of-range');
+    } else {
+      noteSel.classList.remove('out-of-range');
+      accSel.classList.remove('out-of-range');
+    }
+  };
+  noteSel.addEventListener('change', validate);
+  accSel.addEventListener('change', validate);
+
+  selector.appendChild(noteSel);
+  selector.appendChild(accSel);
+  wrapper.appendChild(selector);
+
+  wrapper._validate = validate;
+
+  return { wrapper, noteSel, accSel };
+}
+
+function createDurationSelector(current) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'duration-selector';
+  Object.entries(DURATIONS).forEach(([key, d]) => {
+    const btn = document.createElement('button');
+    btn.className = 'duration-btn' + (key === current ? ' active' : '');
+    btn.textContent = d.label;
+    btn.title = key.charAt(0).toUpperCase() + key.slice(1);
+    btn.dataset.duration = key;
+    btn.addEventListener('click', () => {
+      wrapper.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    wrapper.appendChild(btn);
+  });
+  return wrapper;
+}
+
+function createChordBlock(chordData, index) {
+  const block = document.createElement('div');
+  block.className = 'chord-block';
+  block.dataset.index = index;
+
+  // Header con índice y botón de reproducción individual
+  const header = document.createElement('div');
+  header.className = 'chord-header';
+
+  const idx = document.createElement('div');
+  idx.className = 'chord-index';
+  idx.textContent = 'Ac. ' + (index + 1);
+  header.appendChild(idx);
+
+  const playBtn = document.createElement('button');
+  playBtn.className = 'play-chord-btn';
+  playBtn.textContent = '▶';
+  playBtn.title = 'Reproducir este acorde';
+  playBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    playSingleChord(block, playBtn);
+  });
+  header.appendChild(playBtn);
+
+  block.appendChild(header);
+
+  const voicesDiv = document.createElement('div');
+  voicesDiv.className = 'voices';
+
+  VOICES.forEach(voice => {
+    const { wrapper, noteSel, accSel } = createVoiceSelector(voice);
+    if (chordData && chordData.voices[voice]) {
+      const v = chordData.voices[voice];
+      noteSel.value = v.note + '|' + v.octave;
+      accSel.value = String(v.acc);
+    }
+    if (wrapper._validate) wrapper._validate();
+    voicesDiv.appendChild(wrapper);
+  });
+  block.appendChild(voicesDiv);
+
+  const durationSel = createDurationSelector(chordData ? chordData.duration : 'negra');
+  block.appendChild(durationSel);
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-btn';
+  removeBtn.textContent = '×';
+  removeBtn.title = 'Eliminar acorde';
+  removeBtn.addEventListener('click', () => {
+    if (chords.length <= 1) return;
+    chords = readChordsFromUI();
+    chords.splice(index, 1);
+    render();
+  });
+  block.appendChild(removeBtn);
+
+  return block;
+}
+
+/* ============================================================
+   LECTURA DE DATOS DE UI
+   ============================================================ */
+
+function readChordsFromUI() {
+  const blocks = document.querySelectorAll('.chord-block');
+  const result = [];
+  blocks.forEach((block) => {
+    const voices = {};
+    VOICES.forEach(v => {
+      const voiceEl = block.querySelector(`.voice[data-voice="${v}"]`);
+      const noteSel = voiceEl.querySelector('.note-name');
+      const accSel = voiceEl.querySelector('.accidental');
+      const [note, octaveStr] = noteSel.value.split('|');
+      voices[v] = {
+        note,
+        octave: parseInt(octaveStr),
+        acc: parseInt(accSel.value)
+      };
+    });
+    result.push({ voices, duration: getBlockDuration(block) });
+  });
+  return result;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+
+function render() {
+  const container = document.getElementById('chordsContainer');
+  const addBtn = document.getElementById('addChordBtn');
+  container.querySelectorAll('.chord-block').forEach(el => el.remove());
+  chords.forEach((chord, i) => {
+    container.insertBefore(createChordBlock(chord, i), addBtn);
+  });
+}
+
+/* ============================================================
+   AUDIO (Tone.js)
+   ============================================================ */
+
+let synth = null;
+
+function initSynth() {
+  if (synth) return;
+  synth = new Tone.PolySynth(Tone.FMSynth, {
+    harmonicity: 1.5,
+    modulationIndex: 4,
+    oscillator: { type: 'sine' },
+    envelope: {
+      attack: 0.05,
+      decay: 0.2,
+      sustain: 0.8,
+      release: 0.6
+    },
+    modulation: { type: 'sine' },
+    modulationEnvelope: {
+      attack: 0.1,
+      decay: 0.3,
+      sustain: 0.4,
+      release: 0.5
+    }
+  });
+  synth.volume.value = -10;
+  const reverb = new Tone.Reverb({ decay: 2.5, wet: 0.25 }).toDestination();
+  synth.connect(reverb);
+}
+
+// Reproduce un acorde individual
+async function playSingleChord(block, btn) {
+  await Tone.start();
+  initSynth();
+
+  // Detener reproducción global si está activa
+  if (playing) {
+    stopRequested = true;
+  }
+
+  const notes = getBlockNotes(block);
+  const durationKey = getBlockDuration(block);
+  const bpm = parseInt(document.getElementById('tempo').value) || 60;
+  const secPerBeat = 60 / bpm;
+  const durSec = DURATIONS[durationKey].beats * secPerBeat;
+
+  // Feedback visual
+  btn.classList.add('playing');
+  btn.textContent = '■';
+  block.classList.add('active');
+
+  synth.triggerAttackRelease(notes, durSec * 0.95, Tone.now());
+
+  setTimeout(() => {
+    btn.classList.remove('playing');
+    btn.textContent = '▶';
+    block.classList.remove('active');
+  }, durSec * 1000 + 200);
+}
+
+async function playSequence() {
+  if (playing) return;
+  await Tone.start();
+  initSynth();
+
+  const data = readChordsFromUI();
+  const bpm = parseInt(document.getElementById('tempo').value) || 60;
+  Tone.Transport.bpm.value = bpm;
+
+  playing = true;
+  stopRequested = false;
+  const playBtn = document.getElementById('playBtn');
+  playBtn.textContent = '■ Reproduciendo';
+  playBtn.classList.add('playing');
+
+  let timeOffset = 0;
+  const secPerBeat = 60 / bpm;
+
+  for (let i = 0; i < data.length; i++) {
+    if (stopRequested) break;
+
+    const chord = data[i];
+    const block = document.querySelectorAll('.chord-block')[i];
+    if (block) block.classList.add('active');
+
+    const notesToPlay = VOICES.map(v => {
+      const { note, octave, acc } = chord.voices[v];
+      const midi = getNoteMidi(note, acc, octave);
+      return midiToNoteName(midi);
+    });
+
+    const durBeats = DURATIONS[chord.duration].beats;
+    const durSec = durBeats * secPerBeat;
+
+    synth.triggerAttackRelease(notesToPlay, durSec * 0.95, Tone.now() + timeOffset);
+
+    timeOffset += durSec;
+  }
+
+  const totalMs = timeOffset * 1000 + 300;
+  const start = Date.now();
+
+  const checkEnd = () => {
+    if (stopRequested) {
+      finishPlayback();
+      return;
+    }
+    if (Date.now() - start >= totalMs) {
+      finishPlayback();
+    } else {
+      requestAnimationFrame(checkEnd);
+    }
+  };
+  requestAnimationFrame(checkEnd);
+}
+
+function finishPlayback() {
+  playing = false;
+  document.querySelectorAll('.chord-block').forEach(b => b.classList.remove('active'));
+  const playBtn = document.getElementById('playBtn');
+  playBtn.textContent = '▶ Reproducir';
+  playBtn.classList.remove('playing');
+  if (synth) synth.releaseAll();
+}
+
+function stopPlayback() {
+  stopRequested = true;
+  if (synth) synth.releaseAll();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+
+function initDefaultChords() {
+  chords = [
+    {
+      voices: {
+        S: { note: 'E', octave: 5, acc: 0 },
+        A: { note: 'C', octave: 5, acc: 0 },
+        T: { note: 'G', octave: 4, acc: 0 },
+        B: { note: 'C', octave: 3, acc: 0 }
+      },
+      duration: 'negra'
+    },
+    {
+      voices: {
+        S: { note: 'F', octave: 5, acc: 0 },
+        A: { note: 'C', octave: 5, acc: 0 },
+        T: { note: 'A', octave: 4, acc: 0 },
+        B: { note: 'F', octave: 3, acc: 0 }
+      },
+      duration: 'negra'
+    },
+    {
+      voices: {
+        S: { note: 'D', octave: 5, acc: 0 },
+        A: { note: 'B', octave: 4, acc: 0 },
+        T: { note: 'G', octave: 4, acc: 0 },
+        B: { note: 'G', octave: 3, acc: 0 }
+      },
+      duration: 'negra'
+    },
+    {
+      voices: {
+        S: { note: 'C', octave: 5, acc: 0 },
+        A: { note: 'G', octave: 4, acc: 0 },
+        T: { note: 'E', octave: 4, acc: 0 },
+        B: { note: 'C', octave: 3, acc: 0 }
+      },
+      duration: 'negra'
+    }
+  ];
+}
+
+document.getElementById('addChordBtn').addEventListener('click', () => {
+  chords = readChordsFromUI();
+  const last = chords[chords.length - 1];
+  chords.push(JSON.parse(JSON.stringify(last)));
+  render();
+  setTimeout(() => {
+    const container = document.getElementById('chordsContainer');
+    const newBlock = container.querySelectorAll('.chord-block')[chords.length - 1];
+    if (newBlock) newBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 50);
+});
+
+document.getElementById('playBtn').addEventListener('click', playSequence);
+document.getElementById('stopBtn').addEventListener('click', stopPlayback);
+
+initDefaultChords();
+render();
+</script>
+
+</body>
+</html>
