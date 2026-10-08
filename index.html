@@ -372,39 +372,6 @@
   }
   .play-main:active { transform: scale(0.98); }
   .play-main.playing { background: var(--danger); }
-  .play-main:disabled { opacity: 0.5; cursor: wait; }
-
-  /* Barra de carga de samples */
-  .loading-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 500;
-    background: var(--panel);
-    padding: 10px 16px;
-    padding-top: calc(10px + env(safe-area-inset-top));
-    text-align: center;
-    font-size: 13px;
-    color: var(--text);
-    border-bottom: 1px solid var(--accent);
-    display: none;
-  }
-  .loading-bar.visible { display: block; }
-  .loading-bar .progress {
-    height: 4px;
-    background: #33333f;
-    border-radius: 2px;
-    overflow: hidden;
-    margin-top: 6px;
-  }
-  .loading-bar .progress-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--accent);
-    transition: width 0.2s;
-  }
-  .loading-bar .status { color: var(--accent-2); font-weight: 700; }
 
   .menu-panel {
     position: fixed;
@@ -754,12 +721,6 @@
 </head>
 <body>
 
-<!-- Barra de carga de samples -->
-<div class="loading-bar" id="loadingBar">
-  <div>Cargando samples de piano… <span class="status" id="loadingStatus">0%</span></div>
-  <div class="progress"><div class="progress-fill" id="loadingFill"></div></div>
-</div>
-
 <header>
   <div class="header-row">
     <h1>SATB <span>Lab</span></h1>
@@ -978,22 +939,17 @@ const DEFAULT_BPM = 90;
 /* ============================================================
    SAMPLES DE PIANO
    Nomenclatura: piano<midi>.mp3 dentro de ./samples/
-   Lista de notas MIDI sampleadas (11 puntos, cada 3-5 semitonos)
-   Cubre el rango completo de E2 (40) a A5 (81) con transposición
-   máxima de ±2 semitonos.
    ============================================================ */
 
 const SAMPLE_MIDIS = [40, 43, 48, 52, 56, 60, 64, 68, 72, 76, 80];
 const SAMPLES_BASE_PATH = './samples/';
 
-// Convierte un número MIDI a nombre de nota (ej: 60 → "C4")
 function midiToNoteName(midi) {
   const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const octave = Math.floor(midi / 12) - 1;
   return names[midi % 12] + octave;
 }
 
-// Construye el mapa de URLs para Tone.Sampler
 function buildSampleUrls() {
   const urls = {};
   SAMPLE_MIDIS.forEach(midi => {
@@ -1618,34 +1574,16 @@ function initSampler() {
     onload: () => {
       samplerReady = true;
       console.log('[SATB Lab] Sampler cargado — todos los samples listos');
-      updatePlayButtonState();
     },
     onerror: (err) => {
       console.error('[SATB Lab] Error al cargar samples:', err);
     }
   });
 
-  // Reverb global suave (como antes)
   const reverb = new Tone.Reverb({ decay: 2.5, wet: 0.2 }).toDestination();
   sampler.connect(reverb);
 
   return sampler;
-}
-
-// Actualiza el estado del botón grande según si los samples están listos
-function updatePlayButtonState() {
-  const btn = document.getElementById('playBtn');
-  if (!btn) return;
-  // El botón se puede pulsar igual, pero avisamos si no hay samples
-  if (!samplerReady) {
-    btn.disabled = true;
-    document.getElementById('playBtnLabel').textContent = 'Cargando samples…';
-  } else {
-    btn.disabled = false;
-    if (!playing) {
-      document.getElementById('playBtnLabel').textContent = 'Reproducir progresión';
-    }
-  }
 }
 
 async function ensureAudioReady() {
@@ -1698,10 +1636,7 @@ async function playChord(i) {
 async function playSequence() {
   if (playing) { stopPlayback(); return; }
   await ensureAudioReady();
-  if (!samplerReady) {
-    alert('Los samples aún se están cargando. Espera unos segundos e inténtalo de nuevo.');
-    return;
-  }
+  if (!samplerReady) return;
 
   playing = true;
   document.getElementById('playBtn').classList.add('playing');
@@ -1957,58 +1892,7 @@ function getDefaultChords() {
   ];
 }
 
-// Barra de carga visual de samples (aproximada)
-function showLoadingBar() {
-  document.getElementById('loadingBar').classList.add('visible');
-}
-function hideLoadingBar() {
-  document.getElementById('loadingBar').classList.remove('visible');
-}
-function updateLoadingProgress(loaded, total) {
-  const pct = Math.round((loaded / total) * 100);
-  document.getElementById('loadingStatus').textContent = pct + '%';
-  document.getElementById('loadingFill').style.width = pct + '%';
-}
-
-// Cuenta cuántos samples cargaron realmente consultando el buffer interno
-function countLoadedSamples() {
-  if (!sampler || !sampler.buffers) return 0;
-  let count = 0;
-  for (const k in sampler.buffers) {
-    if (sampler.buffers[k]) count++;
-  }
-  return count;
-}
-
-// Poll de progreso mientras carga
-function pollSamplerProgress() {
-  const total = SAMPLE_MIDIS.length;
-  let stableCount = 0;
-
-  const check = () => {
-    const loaded = countLoadedSamples();
-    updateLoadingProgress(loaded, total);
-    if (loaded === total && samplerReady) {
-      setTimeout(hideLoadingBar, 400);
-      updatePlayButtonState();
-      return;
-    }
-    if (loaded === stableCount && loaded > 0 && Date.now() - startTime > 15000) {
-      // Timeout de seguridad: mostramos lo que haya
-      hideLoadingBar();
-      updatePlayButtonState();
-      return;
-    }
-    stableCount = loaded;
-    setTimeout(check, 150);
-  };
-
-  const startTime = Date.now();
-  check();
-}
-
 function init() {
-  // Cargar estado previo
   try {
     const saved = JSON.parse(localStorage.getItem('satb-tester') || 'null');
     let savedChords = null;
@@ -2047,12 +1931,8 @@ function init() {
 
   redrawAll();
 
-  // Pre-cargar los samples en segundo plano (aún sin audio context)
-  // Tone.Sampler descarga los archivos pero no los reproduce hasta el primer click
-  showLoadingBar();
+  // Pre-cargar los samples en segundo plano
   initSampler();
-  pollSamplerProgress();
-  updatePlayButtonState();
 }
 
 window.addEventListener('load', () => {
