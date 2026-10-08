@@ -2,8 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SATB Tester</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a1f">
+<title>SATB Voice Leading Lab</title>
 <style>
   :root {
     --bg: #1a1a1f;
@@ -16,507 +17,507 @@
     --muted: #8a8a99;
     --danger: #ff5c7c;
   }
-  * { box-sizing: border-box; }
-  body {
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
     margin: 0;
+    padding: 0;
+    height: 100%;
+    overscroll-behavior: none;
+  }
+  body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding: 20px;
+    padding: 0;
     min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
   }
+
   header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg);
+    border-bottom: 1px solid #33333f;
+    padding: 8px 12px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+  .header-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     flex-wrap: wrap;
-    gap: 12px;
-    max-width: 1400px;
-    margin: 0 auto 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #33333f;
   }
   h1 {
     margin: 0;
-    font-size: 22px;
+    font-size: 16px;
     font-weight: 700;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
   }
   h1 span { color: var(--accent); }
-  .controls {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .voice-toolbar {
+  .spacer { flex: 1; }
+
+  .toolbar {
     display: flex;
     gap: 4px;
     background: var(--panel);
-    padding: 4px;
+    padding: 3px;
     border-radius: 10px;
     border: 1px solid #33333f;
   }
-  .voice-btn {
+  .toolbar-btn {
     background: transparent;
     border: none;
     color: var(--muted);
-    padding: 6px 14px;
+    padding: 8px 12px;
     border-radius: 7px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 700;
     transition: all 0.15s;
     font-family: inherit;
+    min-height: 36px;
+    min-width: 36px;
   }
-  .voice-btn:hover {
-    color: var(--text);
-    background: rgba(255,255,255,0.05);
+  .toolbar-btn:active {
+    transform: scale(0.94);
+    background: rgba(255,255,255,0.08);
   }
-  .voice-btn.active[data-voice="S"] { background: #ff7c9c; color: white; }
-  .voice-btn.active[data-voice="A"] { background: #ffb85c; color: white; }
-  .voice-btn.active[data-voice="T"] { background: #5cc9ff; color: white; }
-  .voice-btn.active[data-voice="B"] { background: #7cff9c; color: #1a1a1f; }
+  .toolbar-btn.active[data-voice="S"] { background: #ff7c9c; color: white; }
+  .toolbar-btn.active[data-voice="A"] { background: #ffb85c; color: white; }
+  .toolbar-btn.active[data-voice="T"] { background: #5cc9ff; color: white; }
+  .toolbar-btn.active[data-voice="B"] { background: #7cff9c; color: #1a1a1f; }
+  .toolbar-btn.acc-active { background: var(--accent); color: white; }
 
-  .tempo-box {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .menu-btn {
     background: var(--panel);
-    padding: 8px 14px;
-    border-radius: 10px;
-    border: 1px solid #33333f;
-  }
-  .tempo-box label { font-size: 13px; color: var(--muted); }
-  .tempo-box input {
-    width: 60px;
-    background: transparent;
-    border: none;
-    color: var(--accent-2);
-    font-weight: 700;
-    font-size: 16px;
-    text-align: center;
-    outline: none;
-  }
-  button {
-    background: var(--panel);
-    color: var(--text);
     border: 1px solid #3a3a48;
-    padding: 10px 18px;
+    color: var(--text);
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.15s;
-    font-family: inherit;
+    font-size: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  button:hover { background: var(--panel-2); border-color: var(--accent); }
-  button:active { transform: scale(0.97); }
-  .btn-play {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: white;
-    padding: 10px 22px;
-  }
-  .btn-play:hover { background: #8f72ff; border-color: #8f72ff; }
-  .btn-play.playing { background: var(--danger); border-color: var(--danger); }
+  .menu-btn:active { transform: scale(0.94); }
 
-  /* ====== PARTITURA ====== */
+  /* Análisis */
+  .analysis {
+    background: var(--panel);
+    border-bottom: 1px solid #33333f;
+    font-size: 12px;
+    padding: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+    max-height: 300px;
+  }
+  .analysis.collapsed { max-height: 44px; }
+  .analysis-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .analysis-header .count {
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .analysis.good .analysis-header .count { color: var(--accent-2); }
+  .analysis.bad .analysis-header .count { color: var(--danger); }
+  .analysis-header .chevron {
+    color: var(--muted);
+    transition: transform 0.2s;
+  }
+  .analysis.collapsed .analysis-header .chevron {
+    transform: rotate(-90deg);
+  }
+  .analysis-body {
+    padding: 0 14px 12px;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+  .analysis ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    color: var(--text);
+  }
+  .analysis li { margin: 3px 0; font-size: 12px; }
+  .analysis .help-text {
+    color: var(--muted);
+    font-size: 11px;
+    display: block;
+    margin-top: 8px;
+  }
+
+  /* Instrucción fija */
+  .instruction {
+    background: rgba(124, 92, 255, 0.12);
+    border-bottom: 1px solid #33333f;
+    padding: 8px 14px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text);
+  }
+  .instruction strong { color: var(--accent-2); }
+
+  /* Partitura */
   .score-wrapper {
-    max-width: 1400px;
-    margin: 0 auto 24px;
     background: var(--paper);
-    border-radius: 12px;
-    padding: 16px 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 0;
     position: relative;
   }
+  .score-wrapper::-webkit-scrollbar { display: none; }
+  .score-wrapper { scrollbar-width: none; }
   #score {
     display: inline-block;
-    min-height: 240px;
     position: relative;
+    min-width: 100%;
   }
-  #score svg {
-    display: block;
-  }
-  .score-empty {
-    color: #888;
-    font-size: 14px;
-    padding: 40px;
-    text-align: center;
-  }
+  #score svg { display: block; }
+
   .highlight-rect {
     position: absolute;
-    background: rgba(124, 92, 255, 0.25);
-    border: 2px solid rgba(124, 92, 255, 0.6);
+    background: rgba(124, 92, 255, 0.22);
+    border: 2px solid rgba(124, 92, 255, 0.5);
     border-radius: 6px;
     pointer-events: none;
-    transition: all 0.15s ease;
-    z-index: 10;
+    transition: all 0.2s ease;
     opacity: 0;
+    z-index: 3;
   }
   .highlight-rect.visible { opacity: 1; }
 
-  /* ====== OVERLAY DE NOTAS CLICABLES ====== */
+  .column-indicator {
+    position: absolute;
+    background: rgba(92, 255, 177, 0.12);
+    border: 1px dashed rgba(92, 255, 177, 0.5);
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
   .note-overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: auto;
-    cursor: pointer;
-    z-index: 5;
-  }
-  .note-cell {
-    position: absolute;
-    cursor: pointer;
-    border-radius: 3px;
-    transition: background 0.1s;
-    pointer-events: auto;
-  }
-  .note-cell:hover {
-    background: rgba(124, 92, 255, 0.2);
-  }
-  /* Columnas fuera del compás activo más tenues */
-  .note-cell.dim {
-    opacity: 0.4;
-  }
-
-  /* Resaltar columna activa */
-  .column-indicator {
-    position: absolute;
-    background: rgba(92, 255, 177, 0.15);
-    border: 1px dashed rgba(92, 255, 177, 0.5);
-    border-radius: 6px;
-    pointer-events: none;
     z-index: 4;
+    touch-action: pan-x;
   }
 
-  /* ====== CONTROLES ====== */
-  .chords-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: flex-start;
-  }
-
-  .chord-block {
-    background: var(--panel);
-    border-radius: 14px;
-    padding: 12px;
-    border: 1px solid #33333f;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    transition: all 0.2s;
-    position: relative;
-    width: 200px;
-    flex-shrink: 0;
-    cursor: pointer;
-  }
-  .chord-block.active {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.15);
-    transform: translateY(-2px);
-  }
-  .chord-block.selected {
-    border-color: var(--accent-2);
-    box-shadow: 0 0 0 2px rgba(92, 255, 177, 0.3);
-  }
-
-  .chord-header {
+  /* Tira de acordes */
+  .chord-strip {
+    background: var(--bg);
+    padding: 10px 12px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 6px;
+    gap: 8px;
+    border-bottom: 1px solid #33333f;
   }
-
-  .chord-index {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--muted);
-    text-align: left;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    flex: 1;
-  }
-  .chord-block.selected .chord-index {
-    color: var(--accent-2);
-  }
-
-  .play-chord-btn {
-    background: var(--panel-2);
+  .nav-btn {
+    background: var(--panel);
     border: 1px solid #3a3a48;
-    color: var(--accent-2);
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
+    color: var(--text);
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    font-size: 11px;
-    padding: 0;
-    transition: all 0.15s;
+    transition: all 0.1s;
     flex-shrink: 0;
   }
-  .play-chord-btn:hover {
-    background: var(--accent-2);
-    color: var(--bg);
-    border-color: var(--accent-2);
-    transform: scale(1.1);
+  .nav-btn:active { transform: scale(0.92); background: var(--panel-2); }
+  .nav-btn:disabled { opacity: 0.3; }
+
+  .chord-counter {
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    flex: 1;
+    letter-spacing: 0.3px;
   }
-  .play-chord-btn.playing {
-    background: var(--danger);
-    border-color: var(--danger);
+  .chord-counter .num {
+    color: var(--accent-2);
+    font-size: 18px;
+    margin: 0 2px;
+  }
+  .chord-counter .total {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .action-btn {
+    background: var(--panel);
+    border: 1px solid #3a3a48;
+    color: var(--text);
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    flex-shrink: 0;
+  }
+  .action-btn:active { transform: scale(0.92); }
+  .action-btn.play { color: var(--accent-2); border-color: rgba(92,255,177,0.35); }
+  .action-btn.play:active { background: rgba(92,255,177,0.15); }
+  .action-btn.play.playing { background: var(--danger); color: white; border-color: var(--danger); }
+  .action-btn.add { color: var(--accent-2); }
+  .action-btn.del { color: var(--danger); border-color: rgba(255,92,124,0.35); }
+  .action-btn.del:disabled { opacity: 0.3; }
+
+  /* Duración */
+  .duration-bar {
+    background: var(--bg);
+    padding: 8px 12px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #33333f;
+  }
+  .duration-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .duration-group {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+  }
+  .duration-btn {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid #3a3a48;
+    color: var(--muted);
+    height: 44px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.1s;
+    padding: 0;
+  }
+  .duration-btn:active { transform: scale(0.95); }
+  .duration-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
     color: white;
   }
 
-  .voices {
+  /* Play sticky */
+  .play-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    background: linear-gradient(transparent, var(--bg) 30%);
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+  .play-main {
+    width: 100%;
+    height: 56px;
+    background: var(--accent);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+  }
+  .play-main:active { transform: scale(0.98); }
+  .play-main.playing { background: var(--danger); }
+
+  /* Menú */
+  .menu-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 260px;
+    max-width: 80vw;
+    height: 100%;
+    background: var(--panel);
+    z-index: 200;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    padding: 16px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    border-left: 1px solid #33333f;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
-  .voice {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    border-radius: 6px;
-    padding: 2px;
-    transition: background 0.15s;
-  }
-  .voice.active-voice {
-    background: rgba(124, 92, 255, 0.15);
-    box-shadow: inset 0 0 0 1px rgba(124, 92, 255, 0.3);
-  }
-  .voice.flash-warning {
-    animation: flashWarn 0.35s ease;
-  }
-  @keyframes flashWarn {
-    0%, 100% { background: transparent; }
-    50% { background: rgba(255, 92, 124, 0.35); }
-  }
-  .voice-label {
-    font-size: 10px;
-    font-weight: 800;
+  .menu-panel.open { transform: translateX(0); }
+  .menu-panel h3 {
+    margin: 0 0 8px;
+    font-size: 14px;
     color: var(--muted);
-    letter-spacing: 0.5px;
     text-transform: uppercase;
-    width: 14px;
-    text-align: center;
+    letter-spacing: 0.5px;
   }
-  .voice-label.s { color: #ff7c9c; }
-  .voice-label.a { color: #ffb85c; }
-  .voice-label.t { color: #5cc9ff; }
-  .voice-label.b { color: #7cff9c; }
-
-  .note-selector {
+  .menu-item {
+    background: var(--panel-2);
+    border: 1px solid #3a3a48;
+    color: var(--text);
+    padding: 14px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    font-family: inherit;
     display: flex;
-    gap: 3px;
-    flex: 1;
+    align-items: center;
+    gap: 10px;
   }
-  select {
+  .menu-item:active { transform: scale(0.98); }
+  .menu-item.danger { color: var(--danger); border-color: rgba(255,92,124,0.35); }
+  .menu-item .icon { font-size: 18px; }
+
+  .menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .menu-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .tempo-input {
     background: var(--panel-2);
     color: var(--text);
     border: 1px solid #3a3a48;
-    padding: 5px 2px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    outline: none;
-    font-family: inherit;
-    transition: border-color 0.15s;
-  }
-  select:hover, select:focus { border-color: var(--accent); }
-  select.note-name { flex: 1; min-width: 44px; text-align: center; }
-  select.accidental { width: 34px; text-align: center; color: var(--accent-2); padding: 5px 0; }
-  select.out-of-range {
-    border-color: var(--danger) !important;
-    color: var(--danger);
-  }
-
-  .duration-selector {
-    display: flex;
-    background: var(--panel-2);
     border-radius: 8px;
-    padding: 2px;
-    border: 1px solid #3a3a48;
-    justify-content: center;
-  }
-  .duration-btn {
-    background: transparent;
-    border: none;
-    padding: 6px 4px;
-    flex: 1;
-    border-radius: 6px;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
-    transition: all 0.15s;
-  }
-  .duration-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-  .duration-btn.active {
-    background: var(--accent);
-    color: white;
-  }
-
-  .remove-btn {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: var(--panel-2);
-    border: 1px solid #3a3a48;
-    color: var(--muted);
+    padding: 8px 12px;
     font-size: 16px;
-    cursor: pointer;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: all 0.15s;
-    padding: 0;
-  }
-  .chord-block:hover .remove-btn { opacity: 1; }
-  .remove-btn:hover { color: white; background: var(--danger); border-color: var(--danger); }
-
-  .acc-btn { background: transparent; border: none; color: var(--muted); padding: 6px 14px;
-    border-radius: 7px; font-size: 16px; font-weight: 700; }
-  .acc-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-  .acc-btn.active { background: var(--accent); color: white; border: none; }
-
-  .chord-block:hover { z-index: 3; }
-  .insert-btn {
-    position: absolute; top: 50%; right: -17px; transform: translateY(-50%);
-    width: 22px; height: 22px; padding: 0; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--panel-2); border: 1px solid #3a3a48; color: var(--accent-2);
-    font-size: 16px; line-height: 1; opacity: 0; z-index: 2;
-  }
-  .insert-btn.left { right: auto; left: -10px; }
-  .insert-btn:active { transform: translateY(-50%) scale(0.92); }
-  .chord-block:hover .insert-btn { opacity: 1; }
-  .insert-btn:hover { background: var(--accent-2); color: var(--bg); border-color: var(--accent-2); }
-  @media (hover: none) { .remove-btn, .insert-btn { opacity: 1; } }
-
-  .add-btn {
-    background: transparent;
-    border: 2px dashed #3a3a48;
-    color: var(--muted);
-    padding: 14px 20px;
-    font-size: 15px;
-    border-radius: 12px;
-    width: 200px;
-    min-height: 200px;
-    flex-shrink: 0;
     font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .add-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(124,92,255,0.05);
-  }
-
-  .analysis { max-width:1400px; margin:0 auto 16px; padding:10px 14px; border-radius:10px;
-    font-size:13px; background:var(--panel); border:1px solid #33333f; }
-  .analysis.ok { color:var(--accent-2); }
-  .analysis.bad { border-color:var(--danger); }
-  .analysis ul { margin:6px 0 0; padding-left:18px; color:var(--text); }
-  .chord-block.has-issue .chord-index::after { content:' ⚠'; color:var(--danger); }
-
-  .hint {
+    width: 80px;
     text-align: center;
-    color: var(--muted);
-    font-size: 12px;
-    margin-top: 24px;
-    max-width: 1400px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .hint kbd {
-    background: var(--panel-2);
-    border: 1px solid #3a3a48;
-    border-radius: 4px;
-    padding: 1px 6px;
     font-family: inherit;
-    font-size: 11px;
+    outline: none;
   }
+  .tempo-input:focus { border-color: var(--accent); }
 
-  @media (max-width: 900px) {
-    .chord-block, .add-btn {
-      width: calc((100% - 24px) / 3);
-    }
-  }
-  @media (max-width: 640px) {
-    body { padding: 12px; }
-    .chord-block, .add-btn {
-      width: calc((100% - 12px) / 2);
-    }
-    .chord-block { padding: 10px; }
-    .add-btn { min-height: 180px; font-size: 13px; }
-    .voice-toolbar { order: 3; width: 100%; justify-content: center; }
-  }
-  @media (max-width: 380px) {
-    .chord-block, .add-btn {
-      width: 100%;
-    }
+  .import-input { display: none; }
+
+  @media (min-width: 768px) {
+    body { max-width: 900px; margin: 0 auto; }
+    header { padding-left: 20px; padding-right: 20px; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>SATB <span>Tester</span></h1>
-  <div class="controls">
-    <div class="voice-toolbar">
-      <button class="voice-btn active" data-voice="S">Soprano</button>
-      <button class="voice-btn" data-voice="A">Alto</button>
-      <button class="voice-btn" data-voice="T">Tenor</button>
-      <button class="voice-btn" data-voice="B">Bajo</button>
+  <div class="header-row">
+    <h1>SATB <span>Lab</span></h1>
+    <div class="spacer"></div>
+    <div class="toolbar" id="voiceToolbar">
+      <button class="toolbar-btn active" data-voice="S" aria-label="Soprano">S</button>
+      <button class="toolbar-btn" data-voice="A" aria-label="Alto">A</button>
+      <button class="toolbar-btn" data-voice="T" aria-label="Tenor">T</button>
+      <button class="toolbar-btn" data-voice="B" aria-label="Bajo">B</button>
     </div>
-    <div class="voice-toolbar acc-toolbar" role="group" aria-label="Alteración al tocar la partitura">
-      <button class="acc-btn active" data-acc="0" title="Natural">♮</button>
-      <button class="acc-btn" data-acc="1" title="Sostenido">♯</button>
-      <button class="acc-btn" data-acc="-1" title="Bemol">♭</button>
+    <div class="toolbar" id="accToolbar">
+      <button class="toolbar-btn acc-active" data-acc="0" aria-label="Natural">♮</button>
+      <button class="toolbar-btn" data-acc="1" aria-label="Sostenido">♯</button>
+      <button class="toolbar-btn" data-acc="-1" aria-label="Bemol">♭</button>
     </div>
-    <div class="tempo-box">
-      <label>BPM</label>
-      <input type="number" id="tempo" value="60" min="20" max="240">
-    </div>
-    <button class="btn-play" id="playBtn">▶ Reproducir</button>
-    <button id="stopBtn">■ Detener</button>
+    <button class="menu-btn" id="menuBtn" aria-label="Menú">⋮</button>
   </div>
 </header>
+
+<div class="analysis good collapsed" id="analysis">
+  <div class="analysis-header" id="analysisHeader">
+    <span class="count">✓ Sin problemas</span>
+    <span class="chevron">▾</span>
+  </div>
+  <div class="analysis-body" id="analysisBody"></div>
+</div>
+
+<div class="instruction">
+  <strong>Voz:</strong> S/A/T/B arriba · <strong>Alteración:</strong> ♮ ♯ ♭ · 
+  <strong>Toca el pentagrama</strong> para escribir la nota · 
+  <strong>Mantén pulsado</strong> para borrarla.
+</div>
 
 <div class="score-wrapper" id="scoreWrapper">
   <div id="score"></div>
 </div>
 
-<div class="analysis ok" id="analysis" role="status" aria-live="polite"></div>
-
-<div class="chords-container" id="chordsContainer">
-  <button class="add-btn" id="addChordBtn">+ Añadir acorde</button>
+<div class="chord-strip">
+  <button class="nav-btn" id="prevBtn" aria-label="Acorde anterior">◀</button>
+  <div class="chord-counter">
+    Ac. <span class="num" id="chordNum">1</span><span class="total">/<span id="chordTotal">4</span></span>
+  </div>
+  <button class="nav-btn" id="nextBtn" aria-label="Acorde siguiente">▶</button>
+  <button class="action-btn play" id="playChordBtn" aria-label="Reproducir acorde actual">▶</button>
+  <button class="action-btn del" id="delChordBtn" aria-label="Eliminar acorde">🗑</button>
+  <button class="action-btn add" id="addChordBtn" aria-label="Añadir acorde">+</button>
 </div>
 
-<p class="hint">
-  Elige una voz (S/A/T/B) y haz clic en el pentagrama para escribir notas en el acorde seleccionado.
-  Elige ♮ ♯ ♭ en la barra superior para aplicar la alteración al tocar una nota (o <kbd>Shift</kbd>+clic para alternarla). Usa <b>+</b> entre acordes para insertar uno nuevo. Haz clic en un bloque de acorde para seleccionarlo. Atajos: <kbd>1</kbd>–<kbd>4</kbd> voz, <kbd>←</kbd>/<kbd>→</kbd> acorde, <kbd>Espacio</kbd> reproducir/detener.
-</p>
+<div class="duration-bar">
+  <span class="duration-label">Dur.</span>
+  <div class="duration-group" id="durationGroup">
+    <button class="duration-btn" data-duration="negra">♩ Negra</button>
+    <button class="duration-btn" data-duration="blanca">𝅗𝅥 Blanca</button>
+    <button class="duration-btn" data-duration="redonda">𝅝 Redonda</button>
+  </div>
+</div>
+
+<div class="play-bar">
+  <button class="play-main" id="playBtn">
+    <span id="playBtnIcon">▶</span>
+    <span id="playBtnLabel">Reproducir progresión</span>
+  </button>
+</div>
+
+<div class="menu-backdrop" id="menuBackdrop"></div>
+<div class="menu-panel" id="menuPanel">
+  <h3>Ejercicio</h3>
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+    <span style="font-size:13px;color:var(--muted);font-weight:700;">BPM</span>
+    <input class="tempo-input" type="number" id="tempo" value="60" min="20" max="240" inputmode="numeric">
+  </div>
+  <button class="menu-item" id="saveBtn"><span class="icon">⇩</span> Guardar JSON</button>
+  <button class="menu-item" id="loadBtn"><span class="icon">⇧</span> Cargar JSON</button>
+  <button class="menu-item danger" id="resetBtn"><span class="icon">↺</span> Restablecer</button>
+  <input class="import-input" type="file" id="loadInput" accept=".json,application/json">
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.3/build/cjs/vexflow.js"></script>
@@ -535,12 +536,6 @@ const NOTES = [
   { name: 'B', semitone: 11 },
 ];
 
-const ACCIDENTALS = [
-  { label: '♮', value: 0 },
-  { label: '#', value: 1 },
-  { label: 'b', value: -1 },
-];
-
 const VOICE_RANGES = {
   S: { min: 60, max: 81, default: 72 },
   A: { min: 53, max: 76, default: 67 },
@@ -551,14 +546,12 @@ const VOICE_RANGES = {
 const VOICES = ['S', 'A', 'T', 'B'];
 
 const DURATIONS = {
-  'negra':   { beats: 1, label: 'Ngr.',  toneValue: '4n', vexKey: 'q' },
-  'blanca':  { beats: 2, label: 'Blc.', toneValue: '2n', vexKey: 'h' },
-  'redonda': { beats: 4, label: 'Red.',  toneValue: '1n', vexKey: 'w' },
+  'negra':   { beats: 1, label: '♩',  shortLabel: 'Negra',   toneValue: '4n', vexKey: 'q' },
+  'blanca':  { beats: 2, label: '𝅗𝅥', shortLabel: 'Blanca',  toneValue: '2n', vexKey: 'h' },
+  'redonda': { beats: 4, label: '𝅝',  shortLabel: 'Redonda', toneValue: '1n', vexKey: 'w' },
 };
 
 const DIATONIC_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-
-// Nota de la línea superior del pentagrama (línea 0 en VexFlow)
 const TOP_LINE_REFERENCE = {
   treble: { letter: 3, octave: 5 }, // F5
   bass:   { letter: 5, octave: 3 }, // A3
@@ -570,13 +563,12 @@ const TOP_LINE_REFERENCE = {
 
 let chords = [];
 let playing = false;
-let stopRequested = false;
 let _activeVoice = 'S';
 let _activeChordIndex = 0;
-let _accMode = 0; // alteración que se aplica al tocar la partitura
+let _accMode = 0;
 
 /* ============================================================
-   UTILIDADES MUSICALES
+   UTILIDADES
    ============================================================ */
 
 function midiToNoteName(midi) {
@@ -596,325 +588,89 @@ function isInRange(voice, midi) {
   return midi >= r.min && midi <= r.max;
 }
 
-function voiceToVexKey(voiceData) {
-  const { note, octave, acc } = voiceData;
-  let vNote = note.toLowerCase();
-  if (acc === 1) vNote += '#';
-  else if (acc === -1) vNote += 'b';
-  return vNote + '/' + octave;
-}
-
 function diatonicToNote(letterIndex, octave, stepsDown) {
   const totalIndex = octave * 7 + letterIndex - stepsDown;
   const newOctave = Math.floor(totalIndex / 7);
   const newLetter = ((totalIndex % 7) + 7) % 7;
-  return {
-    note: DIATONIC_LETTERS[newLetter],
-    octave: newOctave
-  };
+  return { note: DIATONIC_LETTERS[newLetter], octave: newOctave };
+}
+
+function getBpm() {
+  const el = document.getElementById('tempo');
+  return Math.min(240, Math.max(20, parseInt(el.value) || 60));
+}
+
+function vibrate(ms) {
+  if (navigator.vibrate) navigator.vibrate(ms);
 }
 
 /* ============================================================
-   VOZ ACTIVA
+   TOOLBAR
    ============================================================ */
-
-function getActiveVoice() { return _activeVoice; }
 
 function setActiveVoice(v) {
   _activeVoice = v;
-  document.querySelectorAll('.voice-btn').forEach(b => {
+  document.querySelectorAll('#voiceToolbar .toolbar-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.voice === v);
   });
-  // Marcar la voz activa en los bloques
-  document.querySelectorAll('.voice').forEach(el => {
-    el.classList.toggle('active-voice', el.dataset.voice === v);
-  });
-  // Reconstruir overlay (cambia pentagrama objetivo)
-  if (window._staveGeometry) buildOverlay();
+  // Ajustar overlay según pentagrama de la voz activa
+  const geom = window._staveGeometry;
+  if (geom) {
+    buildOverlay(geom);
+  }
 }
 
-document.querySelectorAll('.voice-btn').forEach(btn => {
+document.querySelectorAll('#voiceToolbar .toolbar-btn').forEach(btn => {
   btn.addEventListener('click', () => setActiveVoice(btn.dataset.voice));
 });
 
-/* ============================================================
-   CREACIÓN DE UI
-   ============================================================ */
-
-function createVoiceSelector(voice) {
-  const range = VOICE_RANGES[voice];
-  const wrapper = document.createElement('div');
-  wrapper.className = 'voice';
-  wrapper.dataset.voice = voice;
-
-  const label = document.createElement('div');
-  label.className = 'voice-label ' + voice.toLowerCase();
-  label.textContent = voice;
-  wrapper.appendChild(label);
-
-  const selector = document.createElement('div');
-  selector.className = 'note-selector';
-
-  const noteSel = document.createElement('select');
-  noteSel.className = 'note-name';
-  noteSel.setAttribute('aria-label', 'Nota ' + voice);
-
-  const naturalPitches = ['B', 'A', 'G', 'F', 'E', 'D', 'C'];
-  const octavesSet = new Set();
-  for (let midi = range.min; midi <= range.max; midi++) {
-    octavesSet.add(Math.floor(midi / 12) - 1);
-  }
-  const sortedOctaves = [...octavesSet].sort((a, b) => b - a);
-
-  sortedOctaves.forEach(oct => {
-    naturalPitches.forEach(n => {
-      const midi = getNoteMidi(n, 0, oct);
-      if (midi >= range.min && midi <= range.max) {
-        const opt = document.createElement('option');
-        opt.value = n + '|' + oct;
-        opt.textContent = n + oct;
-        noteSel.appendChild(opt);
-      }
-    });
+document.querySelectorAll('#accToolbar .toolbar-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    _accMode = parseInt(btn.dataset.acc);
+    document.querySelectorAll('#accToolbar .toolbar-btn').forEach(b => b.classList.remove('acc-active'));
+    btn.classList.add('acc-active');
   });
-
-  const defaultOpt = [...noteSel.options].find(o => {
-    const [n, oct] = o.value.split('|');
-    const midi = getNoteMidi(n, 0, parseInt(oct));
-    return Math.abs(midi - range.default) <= 1;
-  }) || noteSel.options[0];
-  noteSel.value = defaultOpt.value;
-
-  const accSel = document.createElement('select');
-  accSel.className = 'accidental';
-  accSel.setAttribute('aria-label', 'Alteración ' + voice);
-  ACCIDENTALS.forEach(a => {
-    const opt = document.createElement('option');
-    opt.value = a.value;
-    opt.textContent = a.label;
-    accSel.appendChild(opt);
-  });
-  accSel.value = '0';
-
-  const validate = () => {
-    const [n, octStr] = noteSel.value.split('|');
-    const oct = parseInt(octStr);
-    const acc = parseInt(accSel.value);
-    const midi = getNoteMidi(n, acc, oct);
-    if (!isInRange(voice, midi)) {
-      noteSel.classList.add('out-of-range');
-      accSel.classList.add('out-of-range');
-    } else {
-      noteSel.classList.remove('out-of-range');
-      accSel.classList.remove('out-of-range');
-    }
-  };
-  noteSel.addEventListener('change', () => { validate(); syncAndRedraw(); });
-  accSel.addEventListener('change', () => { validate(); syncAndRedraw(); });
-
-  selector.appendChild(noteSel);
-  selector.appendChild(accSel);
-  wrapper.appendChild(selector);
-
-  wrapper._validate = validate;
-
-  return { wrapper, noteSel, accSel };
-}
-
-function createDurationSelector(current) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'duration-selector';
-  Object.entries(DURATIONS).forEach(([key, d]) => {
-    const btn = document.createElement('button');
-    btn.className = 'duration-btn' + (key === current ? ' active' : '');
-    btn.textContent = d.label;
-    btn.title = key.charAt(0).toUpperCase() + key.slice(1);
-    btn.dataset.duration = key;
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      wrapper.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      syncAndRedraw();
-    });
-    wrapper.appendChild(btn);
-  });
-  return wrapper;
-}
-
-function createChordBlock(chordData, index) {
-  const block = document.createElement('div');
-  block.className = 'chord-block';
-  block.dataset.index = index;
-
-  block.addEventListener('click', (e) => {
-    // Ignorar clics sobre los controles internos
-    if (e.target.closest('button') || e.target.closest('select')) return;
-    _activeChordIndex = index;
-    highlightActiveColumn();
-  });
-
-  const header = document.createElement('div');
-  header.className = 'chord-header';
-
-  const idx = document.createElement('div');
-  idx.className = 'chord-index';
-  idx.textContent = 'Ac. ' + (index + 1);
-  header.appendChild(idx);
-
-  const playBtn = document.createElement('button');
-  playBtn.className = 'play-chord-btn';
-  playBtn.textContent = '▶';
-  playBtn.title = 'Reproducir este acorde';
-  playBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    playSingleChord(block, playBtn);
-  });
-  header.appendChild(playBtn);
-
-  block.appendChild(header);
-
-  const voicesDiv = document.createElement('div');
-  voicesDiv.className = 'voices';
-
-  VOICES.forEach(voice => {
-    const { wrapper, noteSel, accSel } = createVoiceSelector(voice);
-    if (chordData && chordData.voices[voice]) {
-      const v = chordData.voices[voice];
-      noteSel.value = v.note + '|' + v.octave;
-      accSel.value = String(v.acc);
-    }
-    if (wrapper._validate) wrapper._validate();
-    voicesDiv.appendChild(wrapper);
-  });
-  block.appendChild(voicesDiv);
-
-  const durationSel = createDurationSelector(chordData ? chordData.duration : 'negra');
-  block.appendChild(durationSel);
-
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'remove-btn';
-  removeBtn.textContent = '×';
-  removeBtn.title = 'Eliminar acorde';
-  removeBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (chords.length <= 1) return;
-    chords = readChordsFromUI();
-    chords.splice(index, 1);
-    if (_activeChordIndex >= chords.length) _activeChordIndex = chords.length - 1;
-    render();
-    redrawScore();
-  });
-  block.appendChild(removeBtn);
-
-  const mkInsert = (pos, side) => {
-    const b = document.createElement('button');
-    b.className = 'insert-btn ' + side;
-    b.textContent = '+';
-    b.title = pos === index ? 'Insertar acorde antes' : 'Insertar acorde después';
-    b.setAttribute('aria-label', b.title);
-    b.addEventListener('click', e => { e.stopPropagation(); insertChordAt(pos); });
-    block.appendChild(b);
-  };
-  mkInsert(index + 1, 'right');
-  if (index === 0) mkInsert(0, 'left');
-
-  return block;
-}
+});
 
 /* ============================================================
-   LECTURA / SINCRONIZACIÓN
+   ANÁLISIS (colapsable)
    ============================================================ */
 
-function readChordsFromUI() {
-  const blocks = document.querySelectorAll('.chord-block');
-  const result = [];
-  blocks.forEach((block) => {
-    const voices = {};
-    VOICES.forEach(v => {
-      const voiceEl = block.querySelector(`.voice[data-voice="${v}"]`);
-      const noteSel = voiceEl.querySelector('.note-name');
-      const accSel = voiceEl.querySelector('.accidental');
-      const [note, octaveStr] = noteSel.value.split('|');
-      voices[v] = {
-        note,
-        octave: parseInt(octaveStr),
-        acc: parseInt(accSel.value)
-      };
-    });
-    const durationBtn = block.querySelector('.duration-btn.active');
-    result.push({ voices, duration: durationBtn ? durationBtn.dataset.duration : 'negra' });
-  });
-  return result;
-}
-
-function syncAndRedraw() {
-  chords = readChordsFromUI();
-  redrawScore();
-}
-
-function render() {
-  const container = document.getElementById('chordsContainer');
-  const addBtn = document.getElementById('addChordBtn');
-  container.querySelectorAll('.chord-block').forEach(el => el.remove());
-  chords.forEach((chord, i) => {
-    container.insertBefore(createChordBlock(chord, i), addBtn);
-  });
-  highlightActiveColumn();
-}
-
-function highlightActiveColumn() {
-  document.querySelectorAll('.chord-block').forEach((b, i) => {
-    b.classList.toggle('selected', i === _activeChordIndex);
-  });
-  // Actualizar indicador en la partitura
-  const ind = document.getElementById('columnIndicator');
-  if (ind && window._staveGeometry) {
-    const geom = window._staveGeometry;
-    if (_activeChordIndex < geom.positions.length) {
-      ind.style.left = (geom.positions[_activeChordIndex] - 22) + 'px';
-      ind.style.top = '10px';
-      ind.style.width = '60px';
-      ind.style.height = '220px';
-      ind.style.display = 'block';
-    }
-  }
-}
+document.getElementById('analysisHeader').addEventListener('click', () => {
+  document.getElementById('analysis').classList.toggle('collapsed');
+});
 
 /* ============================================================
-   RENDER DE PARTITURA (VexFlow 4)
+   RENDER DE PARTITURA
    ============================================================ */
 
-function redrawScore() {
-  const container = document.getElementById('score');
+function voiceToVexKey(voiceData) {
+  const { note, octave } = voiceData;
+  return note.toLowerCase() + '/' + octave;
+}
+
+function renderStave(container, data) {
   container.innerHTML = '';
-  const hl = document.createElement('div');
-  hl.className = 'highlight-rect';
-  hl.id = 'highlightRect';
-  container.appendChild(hl);
 
   if (typeof Vex === 'undefined') {
-    container.innerHTML = '<div class="score-empty">VexFlow no se ha cargado correctamente.</div>';
-    console.error('VexFlow no está disponible.');
-    return;
+    container.innerHTML = '<div style="padding:40px;color:#888;text-align:center;">VexFlow no disponible</div>';
+    return null;
   }
 
   const VF = Vex.Flow || Vex;
   const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental } = VF;
+  if (!Renderer || !Stave || !StaveNote) return null;
 
-  if (!Renderer || !Stave || !StaveNote) {
-    container.innerHTML = '<div class="score-empty">VexFlow cargó pero faltan clases.</div>';
-    return;
-  }
-
-  const data = readChordsFromUI();
   if (data.length === 0) {
-    container.innerHTML = '<div class="score-empty">Añade un acorde para empezar</div>';
-    return;
+    container.innerHTML = '<div style="padding:40px;color:#888;text-align:center;">Sin acordes</div>';
+    return null;
   }
 
-  const chordWidth = 100;
-  const padding = 50;
-  const width = Math.max(700, padding * 2 + data.length * chordWidth);
+  const padding = 40;
+  const chordWidth = 88;
+  const topStaveY = 25;
+  const bottomStaveY = 130;
+  const width = Math.max(container.clientWidth || 320, padding * 2 + data.length * chordWidth);
   const height = 240;
 
   const renderer = new Renderer(container, Renderer.Backends.SVG);
@@ -922,8 +678,6 @@ function redrawScore() {
   const ctx = renderer.getContext();
   ctx.setFont('Arial', 10);
 
-  const topStaveY = 25;
-  const bottomStaveY = 130;
   const staveWidth = width - padding * 2;
 
   const topStave = new Stave(padding, topStaveY, staveWidth);
@@ -934,213 +688,368 @@ function redrawScore() {
   bottomStave.addClef('bass');
   bottomStave.setContext(ctx).draw();
 
-  const sNotes = [], aNotes = [], tNotes = [], bNotes = [];
+  const noteArrays = { S: [], A: [], T: [], B: [] };
+  const voiceBeats = {}; // controla el total de beats por voz
+  VOICES.forEach(v => voiceBeats[v] = 0);
 
-  data.forEach((chord) => {
+  // Genera notas o silencios según el modelo
+  data.forEach((chord, i) => {
     const durKey = DURATIONS[chord.duration].vexKey;
-    const sVex = voiceToVexKey(chord.voices.S);
-    const aVex = voiceToVexKey(chord.voices.A);
-    const tVex = voiceToVexKey(chord.voices.T);
-    const bVex = voiceToVexKey(chord.voices.B);
+    const beats = DURATIONS[chord.duration].beats;
 
-    const sNote = new StaveNote({ keys: [sVex], duration: durKey, clef: 'treble', stem_direction: 1 });
-    const aNote = new StaveNote({ keys: [aVex], duration: durKey, clef: 'treble', stem_direction: -1 });
-    const tNote = new StaveNote({ keys: [tVex], duration: durKey, clef: 'bass',   stem_direction: 1 });
-    const bNote = new StaveNote({ keys: [bVex], duration: durKey, clef: 'bass',   stem_direction: -1 });
+    VOICES.forEach(v => {
+      const vd = chord.voices[v];
+      const clef = (v === 'S' || v === 'A') ? 'treble' : 'bass';
+      const stem = (v === 'S' || v === 'T') ? 1 : -1;
 
-    if (chord.voices.S.acc === 1) sNote.addModifier(new Accidental('#'), 0);
-    if (chord.voices.S.acc === -1) sNote.addModifier(new Accidental('b'), 0);
-    if (chord.voices.A.acc === 1) aNote.addModifier(new Accidental('#'), 0);
-    if (chord.voices.A.acc === -1) aNote.addModifier(new Accidental('b'), 0);
-    if (chord.voices.T.acc === 1) tNote.addModifier(new Accidental('#'), 0);
-    if (chord.voices.T.acc === -1) tNote.addModifier(new Accidental('b'), 0);
-    if (chord.voices.B.acc === 1) bNote.addModifier(new Accidental('#'), 0);
-    if (chord.voices.B.acc === -1) bNote.addModifier(new Accidental('b'), 0);
-
-    sNotes.push(sNote);
-    aNotes.push(aNote);
-    tNotes.push(tNote);
-    bNotes.push(bNote);
+      let note;
+      if (vd && vd.rest) {
+        // Silencio: usamos la duración con "r"
+        const restDur = durKey + 'r';
+        note = new StaveNote({
+          keys: [clef === 'treble' ? 'b/4' : 'd/3'],
+          duration: restDur,
+          clef,
+          align_center: false
+        });
+        note.setStyle({ fillStyle: 'transparent', strokeStyle: 'transparent' });
+        // Añadimos un silencio por encima
+        const rest = new StaveNote({
+          keys: [clef === 'treble' ? 'b/4' : 'd/3'],
+          duration: restDur,
+          clef
+        });
+        noteArrays[v].push(rest);
+      } else if (vd) {
+        note = new StaveNote({
+          keys: [voiceToVexKey(vd)],
+          duration: durKey,
+          clef,
+          stem_direction: stem
+        });
+        if (vd.acc === 1) note.addModifier(new Accidental('#'), 0);
+        if (vd.acc === -1) note.addModifier(new Accidental('b'), 0);
+        noteArrays[v].push(note);
+      } else {
+        // Sin datos: silencio
+        const rest = new StaveNote({
+          keys: [clef === 'treble' ? 'b/4' : 'd/3'],
+          duration: durKey + 'r',
+          clef
+        });
+        noteArrays[v].push(rest);
+      }
+      voiceBeats[v] += beats;
+    });
   });
 
-  const topVoice1 = new Voice({ num_beats: data.length * 4, beat_value: 4 }).setMode(Voice.Mode.SOFT);
-  const topVoice2 = new Voice({ num_beats: data.length * 4, beat_value: 4 }).setMode(Voice.Mode.SOFT);
-  const bottomVoice1 = new Voice({ num_beats: data.length * 4, beat_value: 4 }).setMode(Voice.Mode.SOFT);
-  const bottomVoice2 = new Voice({ num_beats: data.length * 4, beat_value: 4 }).setMode(Voice.Mode.SOFT);
+  const totalBeats = Math.max(...VOICES.map(v => voiceBeats[v]), 1);
 
-  topVoice1.addTickables(sNotes);
-  topVoice2.addTickables(aNotes);
-  bottomVoice1.addTickables(tNotes);
-  bottomVoice2.addTickables(bNotes);
+  const voices = VOICES.map(v =>
+    new Voice({ num_beats: totalBeats, beat_value: 4 }).setMode(Voice.Mode.SOFT)
+  );
+  voices[0].addTickables(noteArrays.S);
+  voices[1].addTickables(noteArrays.A);
+  voices[2].addTickables(noteArrays.T);
+  voices[3].addTickables(noteArrays.B);
 
-  new Formatter()
-    .joinVoices([topVoice1, topVoice2])
-    .format([topVoice1, topVoice2], staveWidth - 20);
+  try {
+    new Formatter().joinVoices([voices[0], voices[1]]).format([voices[0], voices[1]], staveWidth - 20);
+    new Formatter().joinVoices([voices[2], voices[3]]).format([voices[2], voices[3]], staveWidth - 20);
+  } catch (e) {
+    console.warn('Error de formato:', e);
+  }
 
-  new Formatter()
-    .joinVoices([bottomVoice1, bottomVoice2])
-    .format([bottomVoice1, bottomVoice2], staveWidth - 20);
+  voices[0].draw(ctx, topStave);
+  voices[1].draw(ctx, topStave);
+  voices[2].draw(ctx, bottomStave);
+  voices[3].draw(ctx, bottomStave);
 
-  topVoice1.draw(ctx, topStave);
-  topVoice2.draw(ctx, topStave);
-  bottomVoice1.draw(ctx, bottomStave);
-  bottomVoice2.draw(ctx, bottomStave);
-
-  const positions = sNotes.map(n => {
+  const positions = noteArrays.S.map(n => {
     try { return n.getAbsoluteX(); } catch (e) { return 0; }
   });
 
-  // Guardar geometría para el overlay
   const lineSpacing = topStave.getSpacingBetweenLines();
-  window._staveGeometry = {
-    topStaveY,
-    bottomStaveY,
-    padding,
-    staveWidth,
-    chordWidth,
+
+  return {
+    width, height, padding, staveWidth, chordWidth,
     lineSpacing,
     numChords: data.length,
     positions,
-    // Y absolutas de la línea superior de cada pentagrama
+    topStaveY, bottomStaveY,
     topStaveTopLineY: topStave.getYForLine(0),
     bottomStaveTopLineY: bottomStave.getYForLine(0),
   };
-
-  window._chordPositions = positions;
-  window._chordWidth = chordWidth;
-
-  analyze(data);
-  try { localStorage.setItem('satb-tester', JSON.stringify(data)); } catch (e) {}
-
-  // Construir overlay y marcador de columna
-  buildOverlay();
-  buildColumnIndicator();
-  highlightActiveColumn();
 }
 
 /* ============================================================
-   OVERLAY DE NOTAS CLICABLES
+   ESCRITURA / BORRADO
    ============================================================ */
 
-function buildOverlay() {
-  const scoreEl = document.getElementById('score');
-  const old = scoreEl.querySelector('.note-overlay');
-  if (old) old.remove();
-  if (!window._staveGeometry) return;
-  const overlay = document.createElement('div');
-  overlay.className = 'note-overlay';
-  overlay.addEventListener('click', onOverlayClick);
-  scoreEl.appendChild(overlay);
+function writeNoteAt(chordIndex, voice, step, isTop) {
+  const clef = isTop ? 'treble' : 'bass';
+  const ref = TOP_LINE_REFERENCE[clef];
+  const noteInfo = diatonicToNote(ref.letter, ref.octave, step);
+  const midi = getNoteMidi(noteInfo.note, 0, noteInfo.octave);
+  const range = VOICE_RANGES[voice];
+  if (midi < range.min || midi > range.max) {
+    vibrate([20, 30, 20]);
+    return false;
+  }
+  chords[chordIndex].voices[voice] = {
+    note: noteInfo.note,
+    octave: noteInfo.octave,
+    acc: _accMode
+  };
+  const finalMidi = getNoteMidi(noteInfo.note, _accMode, noteInfo.octave);
+  playNotePreview(midiToNoteName(finalMidi));
+  return true;
 }
 
-// Un solo listener: calcula acorde y paso diatónico a partir de las coordenadas
-function onOverlayClick(e) {
+function deleteNoteAt(chordIndex, voice) {
+  if (!chords[chordIndex]) return;
+  chords[chordIndex].voices[voice] = { rest: true };
+  vibrate(30);
+}
+
+/* ============================================================
+   OVERLAY TÁCTIL
+   ============================================================ */
+
+let _longPressTimer = null;
+let _longPressFired = false;
+let _touchStartPos = null;
+
+function buildOverlay(geom) {
+  const container = document.getElementById('score');
+  const old = container.querySelector('.note-overlay');
+  if (old) old.remove();
+  if (!geom) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'note-overlay';
+
+  // Click para desktop
+  overlay.addEventListener('click', (e) => {
+    if (_longPressFired) { _longPressFired = false; return; }
+    const rect = overlay.getBoundingClientRect();
+    handleTap(e.clientX - rect.left, e.clientY - rect.top);
+  });
+
+  // Touch: long-press para borrar
+  overlay.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    _longPressFired = false;
+    const t = e.touches[0];
+    const rect = overlay.getBoundingClientRect();
+    _touchStartPos = { x: t.clientX - rect.left, y: t.clientY - rect.top };
+    if (_longPressTimer) clearTimeout(_longPressTimer);
+    _longPressTimer = setTimeout(() => {
+      _longPressFired = true;
+      handleLongPress(_touchStartPos.x, _touchStartPos.y);
+    }, 500);
+  }, { passive: true });
+
+  overlay.addEventListener('touchend', (e) => {
+    if (_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
+    if (_longPressFired) return;
+    if (!_touchStartPos) return;
+    // Tap corto: escribir
+    handleTap(_touchStartPos.x, _touchStartPos.y);
+    _touchStartPos = null;
+  });
+
+  overlay.addEventListener('touchmove', () => {
+    if (_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
+    _touchStartPos = null;
+  }, { passive: true });
+
+  overlay.addEventListener('contextmenu', e => e.preventDefault());
+
+  container.appendChild(overlay);
+}
+
+function hitTest(x, y, geom) {
+  const isTop = (_activeVoice === 'S' || _activeVoice === 'A');
+  const topY = isTop ? geom.topStaveTopLineY : geom.bottomStaveTopLineY;
+  const stepSize = geom.lineSpacing / 2;
+  const step = Math.round((y - topY) / stepSize);
+  if (step < -8 || step > 14) return null;
+  let best = -1, bestD = Infinity;
+  geom.positions.forEach((p, i) => {
+    const d = Math.abs(x - p);
+    if (d < bestD) { bestD = d; best = i; }
+  });
+  if (best < 0 || bestD > geom.chordWidth / 2) return null;
+  return { chordIndex: best, step, isTop };
+}
+
+function handleTap(x, y) {
   const geom = window._staveGeometry;
   if (!geom) return;
-  const r = e.currentTarget.getBoundingClientRect();
-  const x = e.clientX - r.left, y = e.clientY - r.top;
-  const isTop = ['S', 'A'].includes(getActiveVoice());
-  const topY = isTop ? geom.topStaveTopLineY : geom.bottomStaveTopLineY;
-  const step = Math.round((y - topY) / (geom.lineSpacing / 2));
-  if (step < -8 || step > 14) return;
-  let best = -1, bestD = Infinity;
-  geom.positions.forEach((p, i) => { const d = Math.abs(x - p); if (d < bestD) { bestD = d; best = i; } });
-  if (best < 0 || bestD > geom.chordWidth / 2) return;
-  _activeChordIndex = best;
-  handleNoteClick(best, step, isTop, e.shiftKey);
+  const hit = hitTest(x, y, geom);
+  if (!hit) return;
+  _activeChordIndex = hit.chordIndex;
+  const ok = writeNoteAt(hit.chordIndex, _activeVoice, hit.step, hit.isTop);
+  if (ok) {
+    vibrate(15);
+    redrawAll();
+  }
+}
+
+function handleLongPress(x, y) {
+  const geom = window._staveGeometry;
+  if (!geom) return;
+  const hit = hitTest(x, y, geom);
+  if (!hit) return;
+  _activeChordIndex = hit.chordIndex;
+  deleteNoteAt(hit.chordIndex, _activeVoice);
+  redrawAll();
+}
+
+/* ============================================================
+   HIGHLIGHT Y COLUMN INDICATOR
+   ============================================================ */
+
+function buildHighlight() {
+  const container = document.getElementById('score');
+  let hl = document.getElementById('highlightRect');
+  if (hl) hl.remove();
+  hl = document.createElement('div');
+  hl.className = 'highlight-rect';
+  hl.id = 'highlightRect';
+  container.appendChild(hl);
 }
 
 function buildColumnIndicator() {
-  const scoreEl = document.getElementById('score');
+  const container = document.getElementById('score');
   let ind = document.getElementById('columnIndicator');
   if (ind) ind.remove();
   ind = document.createElement('div');
   ind.className = 'column-indicator';
   ind.id = 'columnIndicator';
-  ind.style.display = 'none';
-  scoreEl.appendChild(ind);
+  container.appendChild(ind);
 }
 
-/* ============================================================
-   MANEJO DE CLIC EN NOTA
-   ============================================================ */
-
-function handleNoteClick(chordIndex, step, isTopStave, shiftKey) {
-  const voice = getActiveVoice();
-  const clef = isTopStave ? 'treble' : 'bass';
-  const ref = TOP_LINE_REFERENCE[clef];
-  const noteInfo = diatonicToNote(ref.letter, ref.octave, step);
-
-  const block = document.querySelectorAll('.chord-block')[chordIndex];
-  if (!block) return;
-  const voiceEl = block.querySelector(`.voice[data-voice="${voice}"]`);
-  const noteSel = voiceEl.querySelector('.note-name');
-  const accSel = voiceEl.querySelector('.accidental');
-
-  // Validar rango
-  const testMidi = getNoteMidi(noteInfo.note, 0, noteInfo.octave);
-  const range = VOICE_RANGES[voice];
-  if (testMidi < range.min || testMidi > range.max) {
-    voiceEl.classList.add('flash-warning');
-    setTimeout(() => voiceEl.classList.remove('flash-warning'), 350);
-    return;
+function updateColumnIndicator() {
+  const ind = document.getElementById('columnIndicator');
+  const geom = window._staveGeometry;
+  if (!ind || !geom) return;
+  if (_activeChordIndex < geom.positions.length) {
+    ind.style.left = (geom.positions[_activeChordIndex] - 22) + 'px';
+    ind.style.top = '10px';
+    ind.style.width = '60px';
+    ind.style.height = '220px';
+    ind.style.display = 'block';
   }
-
-  const optValue = noteInfo.note + '|' + noteInfo.octave;
-  const option = [...noteSel.options].find(o => o.value === optValue);
-  if (!option) {
-    voiceEl.classList.add('flash-warning');
-    setTimeout(() => voiceEl.classList.remove('flash-warning'), 350);
-    return;
-  }
-
-  noteSel.value = optValue;
-
-  // Alteración: shift cicla natural → # → b → natural
-  if (!shiftKey) accSel.value = String(_accMode);
-  if (shiftKey) {
-    const currentAcc = parseInt(accSel.value);
-    const nextAcc = currentAcc === 0 ? 1 : currentAcc === 1 ? -1 : 0;
-    accSel.value = String(nextAcc);
-  }
-
-  if (voiceEl._validate) voiceEl._validate();
-
-  // Preview auditivo
-  playNotePreview(voice, noteInfo.note, parseInt(accSel.value), noteInfo.octave);
-
-  // Redibujar (mantiene la columna activa)
-  syncAndRedraw();
 }
 
-/* ============================================================
-   HIGHLIGHT DEL ACORDE ACTIVO (reproducción)
-   ============================================================ */
-
-function showHighlightForIndex(index) {
+function showPlayingHighlight(i) {
   const rect = document.getElementById('highlightRect');
-  if (!rect) return;
-  const positions = window._chordPositions;
-  if (!positions || positions[index] === undefined) {
-    rect.classList.remove('visible');
-    return;
-  }
-
-  const x = positions[index] - 22;
-  const y = 10;
-  const w = 60;
-  const h = 220;
-
-  rect.style.left = x + 'px';
-  rect.style.top = y + 'px';
-  rect.style.width = w + 'px';
-  rect.style.height = h + 'px';
+  const geom = window._staveGeometry;
+  if (!rect || !geom || geom.positions[i] === undefined) return;
+  rect.style.left = (geom.positions[i] - 22) + 'px';
+  rect.style.top = '10px';
+  rect.style.width = '60px';
+  rect.style.height = '220px';
   rect.classList.add('visible');
 }
 
-function hideHighlight() {
-  const r = document.getElementById('highlightRect');
-  if (r) r.classList.remove('visible');
+function hidePlayingHighlight() {
+  const rect = document.getElementById('highlightRect');
+  if (rect) rect.classList.remove('visible');
+}
+
+/* ============================================================
+   NAVEGACIÓN Y CONTROLES
+   ============================================================ */
+
+document.getElementById('prevBtn').addEventListener('click', () => {
+  _activeChordIndex = Math.max(0, _activeChordIndex - 1);
+  updateChordUI();
+  scrollToActiveChord();
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  _activeChordIndex = Math.min(chords.length - 1, _activeChordIndex + 1);
+  updateChordUI();
+  scrollToActiveChord();
+});
+
+document.getElementById('playChordBtn').addEventListener('click', () => {
+  playChord(_activeChordIndex);
+});
+
+document.getElementById('addChordBtn').addEventListener('click', () => {
+  const last = chords[chords.length - 1];
+  chords.push(JSON.parse(JSON.stringify(last)));
+  _activeChordIndex = chords.length - 1;
+  redrawAll();
+});
+
+document.getElementById('delChordBtn').addEventListener('click', () => {
+  if (chords.length <= 1) return;
+  if (!confirm('¿Eliminar este acorde?')) return;
+  chords.splice(_activeChordIndex, 1);
+  if (_activeChordIndex >= chords.length) _activeChordIndex = chords.length - 1;
+  redrawAll();
+});
+
+document.querySelectorAll('#durationGroup .duration-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!chords[_activeChordIndex]) return;
+    chords[_activeChordIndex].duration = btn.dataset.duration;
+    redrawAll();
+  });
+});
+
+function updateChordUI() {
+  document.getElementById('chordNum').textContent = _activeChordIndex + 1;
+  document.getElementById('chordTotal').textContent = chords.length;
+  document.getElementById('prevBtn').disabled = _activeChordIndex === 0;
+  document.getElementById('nextBtn').disabled = _activeChordIndex >= chords.length - 1;
+  document.getElementById('delChordBtn').disabled = chords.length <= 1;
+
+  const dur = chords[_activeChordIndex]?.duration || 'negra';
+  document.querySelectorAll('#durationGroup .duration-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.duration === dur);
+  });
+
+  updateColumnIndicator();
+}
+
+function scrollToActiveChord() {
+  const geom = window._staveGeometry;
+  const wrapper = document.getElementById('scoreWrapper');
+  if (!geom || !wrapper) return;
+  const x = geom.positions[_activeChordIndex];
+  if (x === undefined) return;
+  const target = x - wrapper.clientWidth / 2 + geom.chordWidth / 2;
+  wrapper.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+}
+
+/* ============================================================
+   REDRAW PRINCIPAL
+   ============================================================ */
+
+function redrawAll() {
+  const container = document.getElementById('score');
+  container.innerHTML = '';
+
+  const geom = renderStave(container, chords);
+  if (geom) {
+    window._staveGeometry = geom;
+    buildHighlight();
+    buildColumnIndicator();
+    buildOverlay(geom);
+    updateColumnIndicator();
+    scrollToActiveChord();
+  }
+
+  analyze(chords);
+  updateChordUI();
+
+  try { localStorage.setItem('satb-tester', JSON.stringify(chords)); } catch (e) {}
 }
 
 /* ============================================================
@@ -1164,69 +1073,42 @@ function initSynth() {
   synth.connect(reverb);
 }
 
-async function playNotePreview(voice, note, acc, octave) {
+async function playNotePreview(noteName) {
   try {
     await Tone.start();
     initSynth();
-    const midi = getNoteMidi(note, acc, octave);
-    const noteName = midiToNoteName(midi);
     synth.triggerAttackRelease(noteName, 0.3, Tone.now());
-  } catch (e) { /* silencioso */ }
+  } catch (e) {}
 }
 
-function getBlockNotes(block) {
+function getChordNotes(chord) {
   return VOICES.map(v => {
-    const voiceEl = block.querySelector(`.voice[data-voice="${v}"]`);
-    const noteSel = voiceEl.querySelector('.note-name');
-    const accSel = voiceEl.querySelector('.accidental');
-    const [note, octaveStr] = noteSel.value.split('|');
-    const oct = parseInt(octaveStr);
-    const acc = parseInt(accSel.value);
-    const midi = getNoteMidi(note, acc, oct);
+    const vd = chord.voices[v];
+    if (!vd || vd.rest) return null;
+    const midi = getNoteMidi(vd.note, vd.acc, vd.octave);
     return midiToNoteName(midi);
-  });
+  }).filter(Boolean);
 }
 
-function getBlockDuration(block) {
-  const durationBtn = block.querySelector('.duration-btn.active');
-  return durationBtn ? durationBtn.dataset.duration : 'negra';
-}
-
-async function playSingleChord(block, btn) {
+async function playChord(i) {
   await Tone.start();
   initSynth();
   if (playing) stopPlayback();
-
-  const notes = getBlockNotes(block);
-  const durationKey = getBlockDuration(block);
-  const bpm = getBpm();
-  const secPerBeat = 60 / bpm;
-  const durSec = DURATIONS[durationKey].beats * secPerBeat;
-
+  const chord = chords[i];
+  if (!chord) return;
+  const notes = getChordNotes(chord);
+  if (notes.length === 0) return;
+  const dur = DURATIONS[chord.duration].beats * (60 / getBpm());
+  const btn = document.getElementById('playChordBtn');
   btn.classList.add('playing');
   btn.textContent = '■';
-  block.classList.add('active');
-
-  const idx = parseInt(block.dataset.index);
-  showHighlightForIndex(idx);
-
-  synth.triggerAttackRelease(notes, durSec * 0.95, Tone.now());
-
+  showPlayingHighlight(i);
+  synth.triggerAttackRelease(notes, dur * 0.95, Tone.now());
   setTimeout(() => {
     btn.classList.remove('playing');
     btn.textContent = '▶';
-    block.classList.remove('active');
-    hideHighlight();
-  }, durSec * 1000 + 200);
-}
-
-function getBpm() {
-  return Math.min(240, Math.max(20, parseInt(document.getElementById('tempo').value) || 60));
-}
-
-function setPlayingChord(i) {
-  document.querySelectorAll('.chord-block').forEach((b, k) => b.classList.toggle('active', k === i));
-  showHighlightForIndex(i);
+    hidePlayingHighlight();
+  }, dur * 1000 + 200);
 }
 
 async function playSequence() {
@@ -1234,33 +1116,37 @@ async function playSequence() {
   await Tone.start();
   initSynth();
 
-  const data = readChordsFromUI();
+  playing = true;
+  document.getElementById('playBtn').classList.add('playing');
+  document.getElementById('playBtnIcon').textContent = '■';
+  document.getElementById('playBtnLabel').textContent = 'Detener';
+
   const bpm = getBpm();
   Tone.Transport.stop();
   Tone.Transport.cancel(0);
   Tone.Transport.bpm.value = bpm;
 
-  playing = true;
-  const playBtn = document.getElementById('playBtn');
-  playBtn.textContent = '■ Reproduciendo';
-  playBtn.classList.add('playing');
-
   const spb = 60 / bpm;
   let t = 0;
-  data.forEach((chord, i) => {
-    const notes = VOICES.map(v => {
-      const { note, octave, acc } = chord.voices[v];
-      return midiToNoteName(getNoteMidi(note, acc, octave));
-    });
+  chords.forEach((chord, i) => {
+    const notes = getChordNotes(chord);
     const dur = DURATIONS[chord.duration].beats * spb;
     Tone.Transport.schedule(time => {
-      synth.triggerAttackRelease(notes, dur * 0.95, time);
-      Tone.Draw.schedule(() => setPlayingChord(i), time);
+      if (notes.length > 0) synth.triggerAttackRelease(notes, dur * 0.95, time);
+      Tone.Draw.schedule(() => {
+        showPlayingHighlight(i);
+        _activeChordIndex = i;
+        updateChordUI();
+        scrollToActiveChord();
+      }, time);
     }, t);
     t += dur;
   });
-  // Fin: cancelable porque vive en el Transport
-  Tone.Transport.schedule(time => Tone.Draw.schedule(finishPlayback, time), t + 0.05);
+
+  Tone.Transport.schedule(time => {
+    Tone.Draw.schedule(finishPlayback, time);
+  }, t + 0.05);
+
   Tone.Transport.start('+0.05');
 }
 
@@ -1268,70 +1154,196 @@ function finishPlayback() {
   playing = false;
   Tone.Transport.stop();
   Tone.Transport.cancel(0);
-  document.querySelectorAll('.chord-block').forEach(b => b.classList.remove('active'));
-  const playBtn = document.getElementById('playBtn');
-  playBtn.textContent = '▶ Reproducir';
-  playBtn.classList.remove('playing');
-  hideHighlight();
+  const btn = document.getElementById('playBtn');
+  btn.classList.remove('playing');
+  document.getElementById('playBtnIcon').textContent = '▶';
+  document.getElementById('playBtnLabel').textContent = 'Reproducir progresión';
+  hidePlayingHighlight();
   if (synth) synth.releaseAll();
 }
 
-function stopPlayback() {
-  finishPlayback();
-}
+function stopPlayback() { finishPlayback(); }
+
+document.getElementById('playBtn').addEventListener('click', playSequence);
 
 /* ============================================================
-   ANÁLISIS DE CONDUCCIÓN DE VOCES
+   ANÁLISIS
    ============================================================ */
 
 function analyze(data) {
   const issues = [];
-  const add = (i, msg) => issues.push({ i, msg });
-  const midi = data.map(c => VOICES.map(v => getNoteMidi(c.voices[v].note, c.voices[v].acc, c.voices[v].octave)));
+  const add = (i, type, msg) => issues.push({ i, type, msg });
+  const midi = data.map(c =>
+    VOICES.map(v => {
+      const vd = c.voices[v];
+      if (!vd || vd.rest) return null;
+      return getNoteMidi(vd.note, vd.acc, vd.octave);
+    })
+  );
+
+  const intervalClass = (a, b) => ((a - b) % 12 + 12) % 12;
+  const direction = (from, to) => Math.sign(to - from);
 
   midi.forEach((m, i) => {
+    if (m.some(x => x === null)) return;
+
     for (let k = 0; k < 3; k++) {
-      if (m[k] < m[k + 1]) add(i, `cruce de voces ${VOICES[k]}–${VOICES[k + 1]}`);
+      if (m[k] < m[k + 1]) add(i, 'vertical', `cruce ${VOICES[k]}–${VOICES[k + 1]}`);
     }
-    if (m[0] - m[1] > 12) add(i, 'separación S–A mayor que una octava');
-    if (m[1] - m[2] > 12) add(i, 'separación A–T mayor que una octava');
-    VOICES.forEach((v, k) => { if (!isInRange(v, m[k])) add(i, `${v} fuera de registro`); });
+    if (m[0] - m[1] > 12) add(i, 'spacing', 'separación S–A > octava');
+    if (m[1] - m[2] > 12) add(i, 'spacing', 'separación A–T > octava');
+    VOICES.forEach((v, k) => {
+      if (!isInRange(v, m[k])) add(i, 'range', `${v} fuera de registro`);
+    });
 
     if (i > 0) {
       const p = midi[i - 1];
-      for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) {
-        const i1 = ((p[a] - p[b]) % 12 + 12) % 12;
-        const i2 = ((m[a] - m[b]) % 12 + 12) % 12;
-        const moved = p[a] !== m[a] || p[b] !== m[b];
-        if (moved && i1 === i2 && (i1 === 7 || i1 === 0)) {
-          add(i, `${i1 === 7 ? '5as' : '8vas'} paralelas ${VOICES[a]}–${VOICES[b]} (desde el acorde ${i})`);
+      if (p.some(x => x === null)) return;
+
+      for (let a = 0; a < 4; a++) {
+        for (let b = a + 1; b < 4; b++) {
+          const prevIC = intervalClass(p[a], p[b]);
+          const currIC = intervalClass(m[a], m[b]);
+          const da = direction(p[a], m[a]);
+          const db = direction(p[b], m[b]);
+          if (da !== 0 && da === db && prevIC === currIC && (currIC === 7 || currIC === 0)) {
+            add(i, 'parallel', `${currIC === 7 ? '5as' : '8vas'} paralelas ${VOICES[a]}–${VOICES[b]}`);
+          }
+          if (a === 0 && b === 3 && da !== 0 && da === db && (currIC === 7 || currIC === 0)) {
+            if (Math.abs(m[0] - p[0]) > 2) {
+              add(i, 'direct', `${currIC === 7 ? '5a' : '8va'} directa S–B`);
+            }
+          }
         }
       }
+      for (let k = 0; k < 3; k++) {
+        if (m[k] < p[k + 1]) add(i, 'overlap', `superposición ${VOICES[k]}–${VOICES[k + 1]}`);
+        if (m[k + 1] > p[k]) add(i, 'overlap', `superposición ${VOICES[k + 1]}–${VOICES[k]}`);
+      }
+      VOICES.forEach((v, k) => {
+        if (Math.abs(m[k] - p[k]) > 12) add(i, 'leap', `${v} salto > octava`);
+      });
     }
   });
 
-  const bad = new Set(issues.map(x => x.i));
-  document.querySelectorAll('.chord-block').forEach((b, i) => b.classList.toggle('has-issue', bad.has(i)));
+  const unique = [];
+  const seen = new Set();
+  issues.forEach(x => {
+    const key = `${x.i}|${x.msg}`;
+    if (!seen.has(key)) { seen.add(key); unique.push(x); }
+  });
+
   const el = document.getElementById('analysis');
-  if (!el) return;
-  el.className = 'analysis ' + (issues.length ? 'bad' : 'ok');
-  el.innerHTML = issues.length
-    ? `<strong>${issues.length} aviso(s)</strong><ul>${issues.map(x => `<li>Ac. ${x.i + 1}: ${x.msg}</li>`).join('')}</ul>`
-    : '✓ Sin cruces, espaciados excesivos, registros ni paralelas detectadas';
+  const body = document.getElementById('analysisBody');
+  const count = el.querySelector('.count');
+
+  if (!unique.length) {
+    el.className = 'analysis good collapsed';
+    count.textContent = '✓ Sin problemas detectados';
+    body.innerHTML = '<span class="help-text">Comprueba reglas básicas de escritura a 4 voces.</span>';
+    return;
+  }
+
+  const labels = {
+    vertical: 'disposición', spacing: 'espaciado', range: 'registro',
+    parallel: 'paralelas', direct: 'directo', overlap: 'superposición', leap: 'saltos'
+  };
+  const counts = {};
+  unique.forEach(x => counts[x.type] = (counts[x.type] || 0) + 1);
+  const summary = Object.entries(counts).map(([k, v]) => `${labels[k]}: ${v}`).join(' · ');
+
+  el.className = 'analysis bad collapsed';
+  count.textContent = `⚠ ${unique.length} aviso${unique.length === 1 ? '' : 's'}`;
+  body.innerHTML = `
+    <span class="help-text">${summary}</span>
+    <ul>${unique.map(x => `<li><strong>Ac. ${x.i + 1}:</strong> ${x.msg}</li>`).join('')}</ul>
+  `;
 }
+
+/* ============================================================
+   GUARDAR / CARGAR / RESET
+   ============================================================ */
+
+function getCurrentExercise() {
+  return { version: 3, app: 'SATB Lab', tempo: getBpm(), chords };
+}
+
+function downloadExercise() {
+  const blob = new Blob([JSON.stringify(getCurrentExercise(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'satb-ejercicio.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+  closeMenu();
+}
+
+function validateExercise(data) {
+  return data && Array.isArray(data.chords) && data.chords.length > 0 &&
+    data.chords.every(c =>
+      DURATIONS[c.duration] && c.voices &&
+      VOICES.every(v => c.voices[v] && (c.voices[v].rest ||
+        (NOTES.some(n => n.name === c.voices[v].note) &&
+         Number.isInteger(c.voices[v].octave) &&
+         [-1,0,1].includes(Number(c.voices[v].acc)))))
+    );
+}
+
+function resetExercise() {
+  if (!confirm('¿Restablecer el ejercicio inicial?')) return;
+  try { localStorage.removeItem('satb-tester'); } catch (e) {}
+  chords = getDefaultChords();
+  _activeChordIndex = 0;
+  document.getElementById('tempo').value = 60;
+  redrawAll();
+  closeMenu();
+}
+
+function closeMenu() {
+  document.getElementById('menuPanel').classList.remove('open');
+  document.getElementById('menuBackdrop').classList.remove('open');
+}
+
+document.getElementById('menuBtn').addEventListener('click', () => {
+  document.getElementById('menuPanel').classList.add('open');
+  document.getElementById('menuBackdrop').classList.add('open');
+});
+document.getElementById('menuBackdrop').addEventListener('click', closeMenu);
+document.getElementById('saveBtn').addEventListener('click', downloadExercise);
+document.getElementById('resetBtn').addEventListener('click', resetExercise);
+document.getElementById('loadBtn').addEventListener('click', () => {
+  document.getElementById('loadInput').click();
+});
+document.getElementById('loadInput').addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!validateExercise(data)) throw new Error('inválido');
+    chords = data.chords;
+    if (data.tempo) document.getElementById('tempo').value = data.tempo;
+    _activeChordIndex = 0;
+    redrawAll();
+    closeMenu();
+  } catch (err) {
+    alert('No se pudo cargar el archivo.');
+  } finally {
+    e.target.value = '';
+  }
+});
+
+document.getElementById('tempo').addEventListener('change', () => {
+  document.getElementById('tempo').value = getBpm();
+});
 
 /* ============================================================
    INIT
    ============================================================ */
 
-function initDefaultChords() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('satb-tester') || 'null');
-    const ok = Array.isArray(saved) && saved.length && saved.every(c =>
-      DURATIONS[c.duration] && c.voices && VOICES.every(v => c.voices[v] && getNoteMidi(c.voices[v].note, 0, 4) !== null));
-    if (ok) { chords = saved; return; }
-  } catch (e) {}
-  chords = [
+function getDefaultChords() {
+  return [
     { voices: { S: { note: 'E', octave: 5, acc: 0 }, A: { note: 'C', octave: 5, acc: 0 }, T: { note: 'G', octave: 4, acc: 0 }, B: { note: 'C', octave: 3, acc: 0 } }, duration: 'negra' },
     { voices: { S: { note: 'F', octave: 5, acc: 0 }, A: { note: 'C', octave: 5, acc: 0 }, T: { note: 'A', octave: 4, acc: 0 }, B: { note: 'F', octave: 3, acc: 0 } }, duration: 'negra' },
     { voices: { S: { note: 'D', octave: 5, acc: 0 }, A: { note: 'B', octave: 4, acc: 0 }, T: { note: 'G', octave: 4, acc: 0 }, B: { note: 'G', octave: 3, acc: 0 } }, duration: 'negra' },
@@ -1339,50 +1351,44 @@ function initDefaultChords() {
   ];
 }
 
-function insertChordAt(pos) {
-  chords = readChordsFromUI();
-  const src = chords[Math.max(0, pos - 1)];
-  chords.splice(pos, 0, JSON.parse(JSON.stringify(src)));
-  _activeChordIndex = pos;
-  render();
-  redrawScore();
+function init() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('satb-tester') || 'null');
+    if (saved && Array.isArray(saved) && saved.length && saved.every(c =>
+      DURATIONS[c.duration] && c.voices && VOICES.every(v => c.voices[v] && (c.voices[v].rest ||
+        getNoteMidi(c.voices[v].note, 0, 4) !== null)))) {
+      chords = saved;
+    } else {
+      chords = getDefaultChords();
+    }
+  } catch (e) {
+    chords = getDefaultChords();
+  }
+
+  document.querySelectorAll('#voiceToolbar .toolbar-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.voice === 'S');
+  });
+  redrawAll();
 }
 
-document.getElementById('addChordBtn').addEventListener('click', () => {
-  chords = readChordsFromUI();
-  const last = chords[chords.length - 1];
-  chords.push(JSON.parse(JSON.stringify(last)));
-  _activeChordIndex = chords.length - 1;
-  render();
-  redrawScore();
+window.addEventListener('load', () => {
+  setTimeout(init, 100);
 });
 
-document.getElementById('playBtn').addEventListener('click', playSequence);
-document.getElementById('stopBtn').addEventListener('click', stopPlayback);
-
+let _resizeTimer;
 window.addEventListener('resize', () => {
-  if (typeof redrawScore === 'function') redrawScore();
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => redrawAll(), 200);
 });
 
-document.addEventListener('keydown', e => {
-  if (e.target.closest('input, select, textarea, button')) return;
-  if (/^[1-4]$/.test(e.key)) setActiveVoice(VOICES[+e.key - 1]);
-  else if (e.key === ' ') { e.preventDefault(); playSequence(); }
-  else if (e.key === 'ArrowRight') { _activeChordIndex = Math.min(chords.length - 1, _activeChordIndex + 1); highlightActiveColumn(); }
-  else if (e.key === 'ArrowLeft') { _activeChordIndex = Math.max(0, _activeChordIndex - 1); highlightActiveColumn(); }
-});
+// Prevenir zoom por doble-tap
+let _lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - _lastTouchEnd <= 300) e.preventDefault();
+  _lastTouchEnd = now;
+}, { passive: false });
 
-document.querySelectorAll('.acc-btn').forEach(btn => btn.addEventListener('click', () => {
-  _accMode = parseInt(btn.dataset.acc);
-  document.querySelectorAll('.acc-btn').forEach(b => b.classList.toggle('active', b === btn));
-}));
-
-// Inicializar
-setActiveVoice('S');
-initDefaultChords();
-render();
-redrawScore();
 </script>
-
 </body>
 </html>
