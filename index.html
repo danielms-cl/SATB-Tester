@@ -138,6 +138,35 @@
     letter-spacing: 0.3px;
   }
 
+  .ornament-btn {
+    background: var(--panel);
+    border: 1px solid #3a3a48;
+    color: var(--text);
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    font-family: inherit;
+    justify-content: center;
+  }
+  .ornament-btn:active { transform: scale(0.96); }
+  .ornament-btn .symbol {
+    font-size: 17px;
+    color: var(--muted);
+  }
+  .ornament-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .ornament-btn.active .symbol { color: white; }
+
   .analysis {
     background: var(--panel);
     border-bottom: 1px solid #33333f;
@@ -738,6 +767,10 @@
       <button class="toolbar-btn" data-acc="1" aria-label="Sostenido" title="Sostenido">♯</button>
       <button class="toolbar-btn" data-acc="2" aria-label="Doble sostenido" title="Doble sostenido">𝄪</button>
     </div>
+    <button class="ornament-btn" id="ornamentBtn" aria-label="Adorno">
+      <span class="symbol">𝆕</span>
+      <span>Adorno</span>
+    </button>
     <button class="key-btn" id="keyBtn" aria-label="Armadura">
       <span class="clef">𝄞</span>
       <span class="label" id="keyLabel">C</span>
@@ -852,12 +885,23 @@
   </div>
 
   <div class="help-section">
+    <span class="help-section-title">Adornos</span>
+    <p class="help-text" style="margin:0;">
+      Con una voz seleccionada, pulsa <strong>𝆕 Adorno</strong> para dividir esa voz en dos notas iguales
+      (mitad del valor del acorde). Toca el pentagrama en la mitad <strong>izquierda</strong> o
+      <strong>derecha</strong> del acorde para editar cada nota por separado.
+      Vuelve a pulsar <strong>𝆕 Adorno</strong> para deshacer la división.
+    </p>
+  </div>
+
+  <div class="help-section">
     <span class="help-section-title">Armadura</span>
     <p class="help-text" style="margin:0;">
       El botón <strong>𝄞</strong> arriba permite elegir la tonalidad. La armadura
       <strong>solo cambia cómo se ven las notas</strong>: si una nota coincide con la
       armadura, no se dibuja su alteración; si la cancela, se dibuja el becuadro.
-      La reproducción sigue usando las alteraciones explícitas que hayas elegido.
+      La reproducción y el preview usan las alteraciones explícitas que hayas elegido
+      con la toolbar (♮ ♯ ♭ ♯♯ ♭♭).
     </p>
   </div>
 
@@ -914,10 +958,12 @@ const VOICE_RANGES = {
 
 const VOICES = ['S', 'A', 'T', 'B'];
 
+const STEM_DIRECTIONS = { S: 1, A: -1, T: 1, B: -1 };
+
 const DURATIONS = {
-  'negra':   { beats: 1, label: '♩',  shortLabel: 'Negra',   toneValue: '4n', vexKey: 'q' },
-  'blanca':  { beats: 2, label: '𝅗𝅥', shortLabel: 'Blanca',  toneValue: '2n', vexKey: 'h' },
-  'redonda': { beats: 4, label: '𝅝',  shortLabel: 'Redonda', toneValue: '1n', vexKey: 'w' },
+  'negra':   { beats: 1, label: '♩',  shortLabel: 'Negra',   toneValue: '4n', vexKey: 'q', splitKey: '8', splitBeats: 0.5 },
+  'blanca':  { beats: 2, label: '𝅗𝅥', shortLabel: 'Blanca',  toneValue: '2n', vexKey: 'h', splitKey: 'q', splitBeats: 1   },
+  'redonda': { beats: 4, label: '𝅝',  shortLabel: 'Redonda', toneValue: '1n', vexKey: 'w', splitKey: 'h', splitBeats: 2   },
 };
 
 const DIATONIC_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -935,10 +981,10 @@ const ACCIDENTAL_MAP = {
 };
 
 const DEFAULT_BPM = 90;
+const SAMPLER_VOLUME_DB = -6;
 
 /* ============================================================
    SAMPLES DE PIANO
-   Nomenclatura: piano<midi>.mp3 dentro de ./samples/
    ============================================================ */
 
 const SAMPLE_MIDIS = [40, 43, 48, 52, 56, 60, 64, 68, 72, 76, 80];
@@ -1037,6 +1083,18 @@ function decideAccidentalType(noteName, explicitAcc) {
   return ACCIDENTAL_MAP[String(explicitAcc)] || null;
 }
 
+function voiceHasSplit() {
+  const chord = chords[_activeChordIndex];
+  if (!chord) return false;
+  const vd = chord.voices[_activeVoice];
+  return !!(vd && vd.split && vd.note2);
+}
+
+function updateOrnamentButton() {
+  const btn = document.getElementById('ornamentBtn');
+  btn.classList.toggle('active', voiceHasSplit());
+}
+
 /* ============================================================
    TOOLBAR
    ============================================================ */
@@ -1050,6 +1108,8 @@ function setActiveVoice(v) {
   document.querySelectorAll('#accToolbar .toolbar-btn').forEach(b => {
     b.classList.toggle('acc-active', parseInt(b.dataset.acc) === 0);
   });
+  updateOrnamentButton();
+  updateColumnIndicator();
   const geom = window._staveGeometry;
   if (geom) buildOverlay(geom);
 }
@@ -1068,6 +1128,34 @@ document.querySelectorAll('#accToolbar .toolbar-btn').forEach(btn => {
 
 document.getElementById('analysisHeader').addEventListener('click', () => {
   document.getElementById('analysis').classList.toggle('collapsed');
+});
+
+/* ============================================================
+   BOTÓN DE ADORNO
+   ============================================================ */
+
+document.getElementById('ornamentBtn').addEventListener('click', () => {
+  const chord = chords[_activeChordIndex];
+  if (!chord) return;
+  const voiceData = chord.voices[_activeVoice];
+  if (!voiceData || voiceData.rest) return;
+
+  if (voiceHasSplit()) {
+    delete voiceData.split;
+    delete voiceData.note2;
+    vibrate(20);
+  } else {
+    voiceData.split = true;
+    voiceData.note2 = {
+      note: voiceData.note,
+      octave: voiceData.octave,
+      acc: voiceData.acc
+    };
+    vibrate(20);
+  }
+
+  updateOrnamentButton();
+  redrawAll();
 });
 
 /* ============================================================
@@ -1158,7 +1246,7 @@ function renderStave(container, data) {
   }
 
   const VF = Vex.Flow || Vex;
-  const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental } = VF;
+  const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, Beam } = VF;
   if (!Renderer || !Stave || !StaveNote) return null;
 
   if (data.length === 0) {
@@ -1167,10 +1255,16 @@ function renderStave(container, data) {
   }
 
   const padding = 40;
-  const chordWidth = 88;
-  const topStaveY = 25;
-  const bottomStaveY = 130;
-  const width = Math.max(container.clientWidth || 320, padding * 2 + data.length * chordWidth);
+  const baseChordWidth = 88;
+  const splitExtraWidth = 55;
+
+  const columnWidths = data.map(chord => {
+    const hasAnySplit = VOICES.some(v => chord.voices[v] && chord.voices[v].split && chord.voices[v].note2);
+    return baseChordWidth + (hasAnySplit ? splitExtraWidth : 0);
+  });
+
+  const totalContentWidth = columnWidths.reduce((a, b) => a + b, 0);
+  const width = Math.max(container.clientWidth || 320, padding * 2 + totalContentWidth);
   const height = 240;
 
   const renderer = new Renderer(container, Renderer.Backends.SVG);
@@ -1179,6 +1273,8 @@ function renderStave(container, data) {
   ctx.setFont('Arial', 10);
 
   const staveWidth = width - padding * 2;
+  const topStaveY = 25;
+  const bottomStaveY = 130;
 
   const topStave = new Stave(padding, topStaveY, staveWidth);
   topStave.addClef('treble');
@@ -1188,51 +1284,105 @@ function renderStave(container, data) {
   const bottomStave = new Stave(padding, bottomStaveY, staveWidth);
   bottomStave.addClef('bass');
   if (_keySignature !== 'C') bottomStave.addKeySignature(_keySignature);
+
+  // La clave de sol y la de fa miden distinto: igualamos el inicio de las notas
+  // para que ambos pentagramas compartan el mismo origen X.
+  const sharedStartX = Math.max(topStave.getNoteStartX(), bottomStave.getNoteStartX());
+  topStave.setNoteStartX(sharedStartX);
+  bottomStave.setNoteStartX(sharedStartX);
+
+  topStave.setContext(ctx).draw();
   bottomStave.setContext(ctx).draw();
 
+  try {
+    if (VF.StaveConnector) {
+      new VF.StaveConnector(topStave, bottomStave).setType(VF.StaveConnector.type.BRACE).setContext(ctx).draw();
+      new VF.StaveConnector(topStave, bottomStave).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw();
+    }
+  } catch (e) { console.warn('Connector error:', e); }
+
   const noteArrays = { S: [], A: [], T: [], B: [] };
+  const beamsToDraw = [];
   const voiceBeats = {};
   VOICES.forEach(v => voiceBeats[v] = 0);
 
   data.forEach((chord) => {
     const durKey = DURATIONS[chord.duration].vexKey;
+    const splitKey = DURATIONS[chord.duration].splitKey;
     const beats = DURATIONS[chord.duration].beats;
 
     VOICES.forEach(v => {
       const vd = chord.voices[v];
       const clef = (v === 'S' || v === 'A') ? 'treble' : 'bass';
-      const stem = (v === 'S' || v === 'T') ? 1 : -1;
+      const stemDir = STEM_DIRECTIONS[v];
 
       if (vd && vd.rest) {
-        const restDur = durKey + 'r';
         const rest = new StaveNote({
           keys: [clef === 'treble' ? 'b/4' : 'd/3'],
-          duration: restDur,
+          duration: durKey + 'r',
           clef
         });
+        try { rest.setStemDirection(stemDir); } catch (e) {}
         noteArrays[v].push(rest);
       } else if (vd) {
-        const note = new StaveNote({
-          keys: [voiceToVexKey(vd)],
-          duration: durKey,
-          clef,
-          stem_direction: stem
-        });
-        const accType = decideAccidentalType(vd.note, vd.acc);
-        if (accType) {
-          note.addModifier(new Accidental(accType), 0);
+        if (vd.split && vd.note2) {
+          const n1 = new StaveNote({
+            keys: [voiceToVexKey(vd)],
+            duration: splitKey,
+            clef
+          });
+          const accType1 = decideAccidentalType(vd.note, vd.acc);
+          if (accType1) n1.addModifier(new Accidental(accType1), 0);
+
+          const n2 = new StaveNote({
+            keys: [voiceToVexKey(vd.note2)],
+            duration: splitKey,
+            clef
+          });
+          const accType2 = decideAccidentalType(vd.note2.note, vd.note2.acc);
+          if (accType2) n2.addModifier(new Accidental(accType2), 0);
+
+          try { n1.setStemDirection(stemDir); } catch (e) {}
+          try { n2.setStemDirection(stemDir); } catch (e) {}
+
+          noteArrays[v].push(n1, n2);
+
+          const splitDurationNum = parseInt(splitKey.replace(/[^\d]/g, ''), 10);
+          if (splitDurationNum >= 8) {
+            beamsToDraw.push(new Beam([n1, n2]));
+          }
+
+        } else {
+          const note = new StaveNote({
+            keys: [voiceToVexKey(vd)],
+            duration: durKey,
+            clef
+          });
+          const accType = decideAccidentalType(vd.note, vd.acc);
+          if (accType) note.addModifier(new Accidental(accType), 0);
+          try { note.setStemDirection(stemDir); } catch (e) {}
+          noteArrays[v].push(note);
         }
-        noteArrays[v].push(note);
       } else {
         const rest = new StaveNote({
           keys: [clef === 'treble' ? 'b/4' : 'd/3'],
           duration: durKey + 'r',
           clef
         });
+        try { rest.setStemDirection(stemDir); } catch (e) {}
         noteArrays[v].push(rest);
       }
       voiceBeats[v] += beats;
     });
+
+  });
+
+  // IMPORTANTE: asignar el pentagrama a cada nota ANTES de formatear.
+  // VexFlow agrupa los modificadores/colisiones por pentagrama; sin esto las 4 voces
+  // se tratan como si compartieran pentagrama (desplaza el alto y voltea plicas del tenor).
+  VOICES.forEach(v => {
+    const st = (v === 'S' || v === 'A') ? topStave : bottomStave;
+    noteArrays[v].forEach(n => n.setStave(st));
   });
 
   const totalBeats = Math.max(...VOICES.map(v => voiceBeats[v]), 1);
@@ -1245,29 +1395,65 @@ function renderStave(container, data) {
   voices[2].addTickables(noteArrays.T);
   voices[3].addTickables(noteArrays.B);
 
+  // UN SOLO Formatter para las 4 voces: así cada tick (incluida la 2ª mitad de
+  // un adorno) tiene la misma X en el pentagrama superior y en el inferior.
+  const noteAreaWidth = Math.max(60, topStave.getNoteEndX() - sharedStartX - 10);
   try {
-    new Formatter().joinVoices([voices[0], voices[1]]).format([voices[0], voices[1]], staveWidth - 20);
-    new Formatter().joinVoices([voices[2], voices[3]]).format([voices[2], voices[3]], staveWidth - 20);
-  } catch (e) {
-    console.warn('Error de formato:', e);
-  }
+    new Formatter()
+      .joinVoices(voices)
+      .format(voices, noteAreaWidth);
+  } catch (e) { console.warn('Format SATB error:', e); }
 
   voices[0].draw(ctx, topStave);
   voices[1].draw(ctx, topStave);
   voices[2].draw(ctx, bottomStave);
   voices[3].draw(ctx, bottomStave);
 
-  const positions = noteArrays.S.map(n => {
-    try { return n.getAbsoluteX(); } catch (e) { return 0; }
+  beamsToDraw.forEach(b => {
+    try { b.setContext(ctx).draw(); } catch (e) {}
+  });
+
+  // Posiciones reales por CADA voz (para el column indicator)
+  const voicePositions = { S: [], A: [], T: [], B: [] };
+  const voicePositions2 = { S: [], A: [], T: [], B: [] };
+
+  VOICES.forEach(v => {
+    let idx = 0;
+    data.forEach(chord => {
+      const vd = chord.voices[v];
+      const hasSplit = vd && vd.split && vd.note2;
+      const n1 = noteArrays[v][idx];
+      const n2 = hasSplit ? noteArrays[v][idx + 1] : null;
+      voicePositions[v].push(n1 ? (n1.getAbsoluteX ? n1.getAbsoluteX() : 0) : 0);
+      voicePositions2[v].push(n2 ? (n2.getAbsoluteX ? n2.getAbsoluteX() : 0) : null);
+      idx += hasSplit ? 2 : 1;
+    });
+  });
+
+  // Posición del acorde = X compartida por todas las voces (primer tick).
+  // La 2ª posición existe si CUALQUIER voz tiene adorno.
+  const positions1 = voicePositions.S.slice();
+  const positions2 = data.map((_, i) => {
+    for (const v of VOICES) {
+      const x = voicePositions2[v][i];
+      if (x !== null && x !== undefined) return x;
+    }
+    return null;
   });
 
   const lineSpacing = topStave.getSpacingBetweenLines();
 
   return {
-    width, height, padding, staveWidth, chordWidth,
+    width, height, padding, staveWidth,
+    chordWidth: baseChordWidth,
+    columnWidths,
     lineSpacing,
     numChords: data.length,
-    positions,
+    positions: positions1,
+    positions1,
+    positions2,
+    voicePositions,
+    voicePositions2,
     topStaveY, bottomStaveY,
     topStaveTopLineY: topStave.getYForLine(0),
     bottomStaveTopLineY: bottomStave.getYForLine(0),
@@ -1278,7 +1464,16 @@ function renderStave(container, data) {
    ESCRITURA / BORRADO
    ============================================================ */
 
-function writeNoteAt(chordIndex, voice, step, isTop) {
+function determineSlot(x, geom, chordIndex) {
+  const p1 = geom.positions1[chordIndex];
+  const p2 = geom.positions2[chordIndex];
+  if (p1 === undefined) return 1;
+  if (p2 === null || p2 === undefined) return 1;
+  const midX = (p1 + p2) / 2;
+  return x < midX ? 1 : 2;
+}
+
+function writeNoteAt(chordIndex, voice, step, isTop, slot) {
   const clef = isTop ? 'treble' : 'bass';
   const ref = TOP_LINE_REFERENCE[clef];
   const noteInfo = diatonicToNote(ref.letter, ref.octave, step);
@@ -1288,14 +1483,27 @@ function writeNoteAt(chordIndex, voice, step, isTop) {
     vibrate([20, 30, 20]);
     return false;
   }
-  chords[chordIndex].voices[voice] = {
-    note: noteInfo.note,
-    octave: noteInfo.octave,
-    acc: _accMode
-  };
-  let previewAcc = _accMode;
-  if (previewAcc === 0) previewAcc = getKeyAccidental(noteInfo.note);
-  const finalMidi = getNoteMidi(noteInfo.note, previewAcc, noteInfo.octave);
+
+  const chord = chords[chordIndex];
+  const vd = chord.voices[voice];
+  const hasSplit = vd && vd.split && vd.note2;
+
+  if (hasSplit && slot === 2) {
+    vd.note2 = {
+      note: noteInfo.note,
+      octave: noteInfo.octave,
+      acc: _accMode
+    };
+  } else {
+    chord.voices[voice] = {
+      note: noteInfo.note,
+      octave: noteInfo.octave,
+      acc: _accMode,
+      ...(hasSplit ? { split: true, note2: vd.note2 } : {})
+    };
+  }
+
+  const finalMidi = getNoteMidi(noteInfo.note, _accMode, noteInfo.octave);
   playNotePreview(midiToNoteName(finalMidi));
   return true;
 }
@@ -1368,11 +1576,20 @@ function hitTest(x, y, geom) {
   if (step < -8 || step > 14) return null;
 
   const chordIndex = _activeChordIndex;
-  const posX = geom.positions[chordIndex];
-  if (posX === undefined) return null;
 
-  const halfWidth = geom.chordWidth / 2 + 12;
-  if (Math.abs(x - posX) > halfWidth) return null;
+  // Usar posiciones de la voz activa para el rango de aceptación
+  const voice = _activeVoice;
+  const vp = (geom.voicePositions && geom.voicePositions[voice]) ? geom.voicePositions[voice] : geom.positions1;
+  const vp2 = (geom.voicePositions2 && geom.voicePositions2[voice]) ? geom.voicePositions2[voice] : geom.positions2;
+
+  const p1 = vp[chordIndex];
+  const p2 = vp2[chordIndex];
+  if (p1 === undefined) return null;
+
+  const leftEdge = p1 - 30;
+  const rightEdge = (p2 !== null && p2 !== undefined) ? p2 + 30 : p1 + geom.chordWidth / 2 + 12;
+
+  if (x < leftEdge || x > rightEdge) return null;
 
   return { chordIndex, step, isTop };
 }
@@ -1382,7 +1599,25 @@ function handleTap(x, y) {
   if (!geom) return;
   const hit = hitTest(x, y, geom);
   if (!hit) return;
-  const ok = writeNoteAt(hit.chordIndex, _activeVoice, hit.step, hit.isTop);
+
+  const chord = chords[hit.chordIndex];
+  const vd = chord.voices[_activeVoice];
+  const hasSplit = vd && vd.split && vd.note2;
+
+  // Determinar slot usando posiciones de la voz activa
+  let slot = 1;
+  if (hasSplit) {
+    const voice = _activeVoice;
+    const vp = (geom.voicePositions && geom.voicePositions[voice]) ? geom.voicePositions[voice] : geom.positions1;
+    const vp2 = (geom.voicePositions2 && geom.voicePositions2[voice]) ? geom.voicePositions2[voice] : geom.positions2;
+    const p1 = vp[hit.chordIndex];
+    const p2 = vp2[hit.chordIndex];
+    if (p2 !== null && p2 !== undefined) {
+      slot = (x < (p1 + p2) / 2) ? 1 : 2;
+    }
+  }
+
+  const ok = writeNoteAt(hit.chordIndex, _activeVoice, hit.step, hit.isTop, slot);
   if (ok) {
     vibrate(15);
     redrawAll();
@@ -1395,6 +1630,7 @@ function handleLongPress(x, y) {
   const hit = hitTest(x, y, geom);
   if (!hit) return;
   deleteNoteAt(hit.chordIndex, _activeVoice);
+  updateOrnamentButton();
   redrawAll();
 }
 
@@ -1426,10 +1662,23 @@ function updateColumnIndicator() {
   const ind = document.getElementById('columnIndicator');
   const geom = window._staveGeometry;
   if (!ind || !geom) return;
-  if (_activeChordIndex < geom.positions.length) {
-    ind.style.left = (geom.positions[_activeChordIndex] - 22) + 'px';
+
+  // Usar las posiciones de la voz activa
+  const voice = _activeVoice;
+  const vp = (geom.voicePositions && geom.voicePositions[voice]) ? geom.voicePositions[voice] : geom.positions1;
+  const vp2 = (geom.voicePositions2 && geom.voicePositions2[voice]) ? geom.voicePositions2[voice] : geom.positions2;
+
+  if (_activeChordIndex < vp.length) {
+    const p1 = vp[_activeChordIndex];
+    const p2 = vp2[_activeChordIndex];
+
+    const left = p1 - 22;
+    const right = (p2 !== null && p2 !== undefined) ? p2 + 22 : p1 + 38;
+    const width = right - left;
+
+    ind.style.left = left + 'px';
     ind.style.top = '10px';
-    ind.style.width = '60px';
+    ind.style.width = width + 'px';
     ind.style.height = '220px';
     ind.style.display = 'block';
   }
@@ -1438,10 +1687,17 @@ function updateColumnIndicator() {
 function showPlayingHighlight(i) {
   const rect = document.getElementById('highlightRect');
   const geom = window._staveGeometry;
-  if (!rect || !geom || geom.positions[i] === undefined) return;
-  rect.style.left = (geom.positions[i] - 22) + 'px';
+  if (!rect || !geom) return;
+  const p1 = geom.positions1[i];
+  const p2 = geom.positions2[i];
+  if (p1 === undefined) return;
+
+  const left = p1 - 22;
+  const right = (p2 !== null && p2 !== undefined) ? p2 + 22 : p1 + 38;
+
+  rect.style.left = left + 'px';
   rect.style.top = '10px';
-  rect.style.width = '60px';
+  rect.style.width = (right - left) + 'px';
   rect.style.height = '220px';
   rect.classList.add('visible');
 }
@@ -1509,15 +1765,16 @@ function updateChordUI() {
   });
 
   updateColumnIndicator();
+  updateOrnamentButton();
 }
 
 function scrollToActiveChord() {
   const geom = window._staveGeometry;
   const wrapper = document.getElementById('scoreWrapper');
   if (!geom || !wrapper) return;
-  const x = geom.positions[_activeChordIndex];
+  const x = geom.positions1[_activeChordIndex];
   if (x === undefined) return;
-  const target = x - wrapper.clientWidth / 2 + geom.chordWidth / 2;
+  const target = x - wrapper.clientWidth / 2;
   wrapper.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
 }
 
@@ -1555,7 +1812,7 @@ function saveToLocalStorage() {
 }
 
 /* ============================================================
-   AUDIO — Tone.Sampler con los samples de piano
+   AUDIO — Tone.Sampler
    ============================================================ */
 
 let sampler = null;
@@ -1580,6 +1837,8 @@ function initSampler() {
     }
   });
 
+  sampler.volume.value = SAMPLER_VOLUME_DB;
+
   const reverb = new Tone.Reverb({ decay: 2.5, wet: 0.2 }).toDestination();
   sampler.connect(reverb);
 
@@ -1603,13 +1862,39 @@ async function playNotePreview(noteName) {
   }
 }
 
-function getChordNotes(chord) {
-  return VOICES.map(v => {
+function getChordEvents(chord) {
+  const events = [];
+  const totalBeats = DURATIONS[chord.duration].beats;
+  VOICES.forEach(v => {
     const vd = chord.voices[v];
-    if (!vd || vd.rest) return null;
-    const midi = getNoteMidi(vd.note, vd.acc, vd.octave);
-    return midiToNoteName(midi);
-  }).filter(Boolean);
+    if (!vd || vd.rest) return;
+
+    if (vd.split && vd.note2) {
+      const mid1 = getNoteMidi(vd.note, vd.acc, vd.octave);
+      const mid2 = getNoteMidi(vd.note2.note, vd.note2.acc, vd.note2.octave);
+      events.push({
+        voice: v,
+        note: midiToNoteName(mid1),
+        startBeats: 0,
+        durBeats: totalBeats / 2
+      });
+      events.push({
+        voice: v,
+        note: midiToNoteName(mid2),
+        startBeats: totalBeats / 2,
+        durBeats: totalBeats / 2
+      });
+    } else {
+      const mid = getNoteMidi(vd.note, vd.acc, vd.octave);
+      events.push({
+        voice: v,
+        note: midiToNoteName(mid),
+        startBeats: 0,
+        durBeats: totalBeats
+      });
+    }
+  });
+  return events;
 }
 
 async function playChord(i) {
@@ -1618,19 +1903,33 @@ async function playChord(i) {
   if (playing) stopPlayback();
   const chord = chords[i];
   if (!chord) return;
-  const notes = getChordNotes(chord);
-  if (notes.length === 0) return;
-  const dur = DURATIONS[chord.duration].beats * (60 / getBpm());
+
+  const events = getChordEvents(chord);
+  if (events.length === 0) return;
+
+  const bpm = getBpm();
+  const secPerBeat = 60 / bpm;
+
   const btn = document.getElementById('playChordBtn');
   btn.classList.add('playing');
   btn.textContent = '■';
   showPlayingHighlight(i);
-  sampler.triggerAttackRelease(notes, dur * 0.95, Tone.now());
+
+  const now = Tone.now() + 0.02;
+  events.forEach(ev => {
+    sampler.triggerAttackRelease(
+      ev.note,
+      ev.durBeats * secPerBeat * 0.95,
+      now + ev.startBeats * secPerBeat
+    );
+  });
+
+  const totalDur = DURATIONS[chord.duration].beats * secPerBeat;
   setTimeout(() => {
     btn.classList.remove('playing');
     btn.textContent = '▶';
     hidePlayingHighlight();
-  }, dur * 1000 + 200);
+  }, totalDur * 1000 + 200);
 }
 
 async function playSequence() {
@@ -1651,10 +1950,20 @@ async function playSequence() {
   const spb = 60 / bpm;
   let t = 0;
   chords.forEach((chord, i) => {
-    const notes = getChordNotes(chord);
-    const dur = DURATIONS[chord.duration].beats * spb;
+    const events = getChordEvents(chord);
+    const chordDur = DURATIONS[chord.duration].beats * spb;
+
+    events.forEach(ev => {
+      Tone.Transport.schedule(time => {
+        sampler.triggerAttackRelease(
+          ev.note,
+          ev.durBeats * spb * 0.95,
+          time + ev.startBeats * spb
+        );
+      }, t);
+    });
+
     Tone.Transport.schedule(time => {
-      if (notes.length > 0) sampler.triggerAttackRelease(notes, dur * 0.95, time);
       Tone.Draw.schedule(() => {
         showPlayingHighlight(i);
         _activeChordIndex = i;
@@ -1662,7 +1971,8 @@ async function playSequence() {
         scrollToActiveChord();
       }, time);
     }, t);
-    t += dur;
+
+    t += chordDur;
   });
 
   Tone.Transport.schedule(time => {
@@ -1689,7 +1999,7 @@ function stopPlayback() { finishPlayback(); }
 document.getElementById('playBtn').addEventListener('click', playSequence);
 
 /* ============================================================
-   ANÁLISIS
+   ANÁLISIS (solo slot 1)
    ============================================================ */
 
 function analyze(data) {
@@ -1788,7 +2098,7 @@ function analyze(data) {
 
 function getCurrentExercise() {
   return {
-    version: 6,
+    version: 7,
     app: 'SATB Lab',
     tempo: getBpm(),
     keySignature: _keySignature,
@@ -1807,14 +2117,25 @@ function downloadExercise() {
   closeMenu();
 }
 
+function validateNoteData(n) {
+  return n && NOTES.some(x => x.name === n.note) &&
+    Number.isInteger(n.octave) && [-2,-1,0,1,2].includes(Number(n.acc));
+}
+
 function validateExercise(data) {
   return data && Array.isArray(data.chords) && data.chords.length > 0 &&
     data.chords.every(c =>
       DURATIONS[c.duration] && c.voices &&
-      VOICES.every(v => c.voices[v] && (c.voices[v].rest ||
-        (NOTES.some(n => n.name === c.voices[v].note) &&
-         Number.isInteger(c.voices[v].octave) &&
-         [-2,-1,0,1,2].includes(Number(c.voices[v].acc)))))
+      VOICES.every(v => {
+        const vd = c.voices[v];
+        if (!vd) return false;
+        if (vd.rest) return true;
+        if (!validateNoteData(vd)) return false;
+        if (vd.split) {
+          return vd.note2 && validateNoteData(vd.note2);
+        }
+        return true;
+      })
     );
 }
 
@@ -1906,9 +2227,7 @@ function init() {
       }
     }
 
-    if (savedChords && savedChords.length && savedChords.every(c =>
-      DURATIONS[c.duration] && c.voices && VOICES.every(v => c.voices[v] && (c.voices[v].rest ||
-        getNoteMidi(c.voices[v].note, 0, 4) !== null)))) {
+    if (savedChords && savedChords.length && validateExercise({ chords: savedChords })) {
       chords = savedChords;
       _keySignature = savedKey;
     } else {
@@ -1930,8 +2249,6 @@ function init() {
   });
 
   redrawAll();
-
-  // Pre-cargar los samples en segundo plano
   initSampler();
 }
 
